@@ -231,6 +231,52 @@ claude
 }
 ```
 
+### 🤖 Custom AI Agents, Local Chatbots & Frameworks Setup
+
+ApiDoct is **NOT limited to famous tools** (like Claude Code, Cursor, or Aider). It is engineered to power **ANY custom AI Agent, Local Chatbot, or Framework** (CrewAI, LangChain, AutoGen, LlamaIndex, custom scripts) that you build!
+
+#### 1. Custom Python Agent / Chatbot (CrewAI, LangChain, AutoGen)
+```python
+from openai import OpenAI
+
+# Connect your local custom AI agent directly to ApiDoct Unified Gateway
+client = OpenAI(
+    base_url="http://localhost:3001/v1",
+    api_key="apidoct-sk-local"
+)
+
+# Auto-route prompt across 40+ free AI providers
+response = client.chat.completions.create(
+    model="auto",  # Or specific model like "deepseek/deepseek-chat", "groq/llama-3.3-70b"
+    messages=[
+        {"role": "system", "content": "You are a custom AI agent running on localhost."},
+        {"role": "user", "content": "Execute agent task and return results."}
+    ]
+)
+
+print(response.choices[0].message.content)
+```
+
+#### 2. Custom Node.js / JavaScript Local Agent
+```javascript
+import OpenAI from 'openai';
+
+const agent = new OpenAI({
+  baseURL: 'http://localhost:3001/v1',
+  apiKey: 'apidoct-sk-local',
+});
+
+async function runAgent() {
+  const res = await agent.chat.completions.create({
+    model: 'auto',
+    messages: [{ role: 'user', content: 'Analyze input data and generate report' }],
+  });
+  console.log(res.choices[0].message.content);
+}
+
+runAgent();
+```
+
 ---
 
 ## ⚙️ Environment Variables Reference
