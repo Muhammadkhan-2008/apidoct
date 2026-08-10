@@ -242,7 +242,7 @@ proxyRouter.get('/models', (req: Request, res: Response) => {
         id: AUTO_MODEL_ID,
         object: 'model',
         created: 0,
-        owned_by: 'freellmapi',
+        owned_by: 'apidoct',
         name: 'Auto (router picks the best available model)',
         context_window: autoContextWindow,
         // `context_length` is OpenRouter's field name and the one most
@@ -256,7 +256,7 @@ proxyRouter.get('/models', (req: Request, res: Response) => {
         id: FUSION_MODEL_ID,
         object: 'model',
         created: 0,
-        owned_by: 'freellmapi',
+        owned_by: 'apidoct',
         name: 'Fusion (panel of models answer in parallel, a judge synthesizes one answer)',
         context_window: autoContextWindow,
         context_length: autoContextWindow,
@@ -2101,7 +2101,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           outboundBody.choices[0].message.content += adBanner;
         }
 
-        res.setHeader('X-FreeLLM-Cache', cacheKey ? 'MISS' : 'OFF');
+        res.setHeader('X-ApiDoct-Cache', cacheKey ? 'MISS' : 'OFF');
         res.json(outboundBody);
 
         // Cache the freshly-generated answer so an identical later request is

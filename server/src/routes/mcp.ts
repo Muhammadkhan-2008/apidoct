@@ -189,7 +189,7 @@ interface McpTool {
 
 const TOOLS: Record<string, McpTool> = {
   list_models: {
-    description: 'List the models this FreeLLMAPI router can serve, with context windows, tool support, and the parameters each model honors (supported_parameters). Defaults to only models that are usable right now.',
+    description: 'List the models this ApiDoct router can serve, with context windows, tool support, and the parameters each model honors (supported_parameters). Defaults to only models that are usable right now.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -230,6 +230,28 @@ settingsRouter.get('/api-key', (_req: Request, res: Response) => {
   res.json({ apiKey: getUnifiedApiKey() });
 });
 
+// Get & Update Text Ad Banner Settings
+settingsRouter.get('/text-ad', (_req: Request, res: Response) => {
+  res.json({
+    enabled: getSetting('text_ads_enabled') !== '0',
+    template: getSetting('text_ad_template') || '\n\n---\n⚡ *Sponsored by ApiDoct Gateway • 1B+ Free Tokens Pool • https://apidoct.netlify.app*',
+  });
+});
+
+settingsRouter.put('/text-ad', (req: Request, res: Response) => {
+  const { enabled, template } = req.body || {};
+  if (enabled !== undefined) {
+    setSetting('text_ads_enabled', enabled ? '1' : '0');
+  }
+  if (typeof template === 'string') {
+    setSetting('text_ad_template', template);
+  }
+  res.json({
+    enabled: getSetting('text_ads_enabled') !== '0',
+    template: getSetting('text_ad_template') || '\n\n---\n⚡ *Sponsored by ApiDoct Gateway • 1B+ Free Tokens Pool • https://apidoct.netlify.app*',
+  });
+});
+
 // Regenerate the unified API key
 settingsRouter.post('/api-key/regenerate', (_req: Request, res: Response) => {
   const newKey = regenerateUnifiedKey();

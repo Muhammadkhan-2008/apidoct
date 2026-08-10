@@ -59,7 +59,7 @@ export function buildModelListing(): ModelListing {
       return {
         id: g.canonicalId,
         name: g.groupLabel,
-        ownedBy: 'freellmapi',
+        ownedBy: 'apidoct',
         available: infos.some(i => i.available === 1) ? 1 : 0,
         enabled: infos.some(i => i.enabled === 1) ? 1 : 0,
         contextWindow: ctxs.length ? Math.max(...ctxs) : null,
