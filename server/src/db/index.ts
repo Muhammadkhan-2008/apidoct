@@ -11,6 +11,7 @@ import type { Db, DbFactory } from './types.js';
 export type { Db, DbFactory } from './types.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const LEGACY_DB_PATH = path.resolve(__dirname, '../../data/freeapi.db');
 const DB_PATH = path.resolve(__dirname, '../../data/apidoct.db');
 const runtimeRequire = createRequire(import.meta.url);
 
@@ -24,7 +25,12 @@ export function getDb(): Db {
 }
 
 export function getDefaultDbPath(): string {
-  return process.env.APIDOCT_DB_PATH?.trim() || process.env.FREEAPI_DB_PATH?.trim() || DB_PATH;
+  const envPath = process.env.APIDOCT_DB_PATH?.trim() || process.env.FREEAPI_DB_PATH?.trim();
+  if (envPath) return envPath;
+  if (fs.existsSync(LEGACY_DB_PATH)) {
+    return LEGACY_DB_PATH;
+  }
+  return DB_PATH;
 }
 
 /** Default factory: opens a better-sqlite3 connection at the given path. */
