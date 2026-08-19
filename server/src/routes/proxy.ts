@@ -8,7 +8,7 @@ import { recordRequest, recordTokens, setCooldown, getCooldownDurationForLimit, 
 import { runEmbeddings, EmbeddingsError } from '../services/embeddings.js';
 import { runImageGeneration, runSpeech, runTranscription, MediaError, MAX_TRANSCRIPTION_BYTES } from '../services/media.js';
 import multer from 'multer';
-import { getDb, getUnifiedApiKey } from '../db/index.js';
+import { getDb, getUnifiedApiKey, getSetting } from '../db/index.js';
 import { contentToString, messageHasImage, normalizeOutboundContent, sanitizeResponse } from '../lib/content.js';
 import { repairToolArguments, toolSchemaMap } from '../lib/tool-args.js';
 import { sanitizeProviderErrorMessage } from '../lib/error-redaction.js';
