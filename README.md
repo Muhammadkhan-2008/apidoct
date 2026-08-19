@@ -2,7 +2,7 @@
 
 # 🚀 ApiDoct - High-Performance Unified AI Gateway & Telemetry Dashboard
 
-**One OpenAI & Anthropic-compatible endpoint to aggregate 40+ AI providers with 1B+ monthly token auto-routing.**
+**One OpenAI & Anthropic-compatible local endpoint to aggregate 40+ AI providers with 1B+ monthly token auto-routing.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
@@ -23,24 +23,26 @@
 - [✨ Key Features](#-key-features)
 - [🚀 Quick Start Guide](#-quick-start-guide)
 - [🐳 Docker Deployment](#-docker-deployment)
-- [📱 Android Termux Installation](#-android-termux-installation)
+- [📱 Android Termux Setup & Troubleshooting](#-android-termux-setup--troubleshooting)
 - [🛠️ API Endpoints Reference](#️-api-endpoints-reference)
+- [🔐 Clerk Authentication & Website Sync](#-clerk-authentication--website-sync)
 - [💻 Coding Agents Integration](#-coding-agents-integration)
 - [⚙️ Environment Variables Reference](#️-environment-variables-reference)
 - [🔒 Security & AES-256 Vault](#-security--aes-256-vault)
-- [📄 License](#-license)
+- [📄 License & Credits](#-license--credits)
 
 ---
 
 ## 🌟 What is ApiDoct?
 
-**ApiDoct** is a self-hosted, high-performance AI API Gateway and Telemetry Dashboard that aggregates free and premium AI model tiers across **40+ providers** into a single, OpenAI and Anthropic compatible `/v1` endpoint.
+**ApiDoct** is an open-source, self-hosted AI Gateway, Proxy Router, and Telemetry Dashboard created by **Muhammad Khan** ([@Muhammadkhan-2008](https://github.com/Muhammadkhan-2008)). It pools free and premium API keys across **40+ AI providers** (Google Gemini, Groq, DeepSeek, Kimi Moonshot, Zhipu GLM, SiliconFlow, Cerebras, OpenCode, Together, Fireworks, Perplexity, Cloudflare, etc.) into a single, unified `/v1` endpoint.
 
-Instead of managing dozens of individual API keys, rate limits, and provider SDKs, ApiDoct acts as a local intelligent proxy router:
-- **Intelligent Auto-routing:** Automatically selects the best available model for your prompt.
-- **Zero-Downtime Fallback:** Gracefully switches to the next active provider when one hits a rate limit or HTTP error.
-- **Web Search Engine Integration:** Built-in real-time internet search capabilities (`/api/search`).
-- **Telemetry & Quota Tracking:** Real-time visual tracking of **1B+ monthly free tokens**, latency, and detailed audit logs.
+Instead of hitting rate limits or managing multiple API schemas, ApiDoct acts as a local proxy router on `http://localhost:3001`:
+- **Intelligent Auto-routing:** Automatically maps incoming prompts to the highest-ranking active provider.
+- **Millisecond Failovers:** Swaps candidate keys transparently when an HTTP 429 (Rate Limit) occurs.
+- **Web Search Engine Integration:** Built-in real-time internet search citations via `/api/search`.
+- **Clerk Authentication Bridge:** Seamlessly syncs user accounts and Pro status between website and gateway engine.
+- **Termux Android Ready:** Fully compatible with ARM Linux, Termux, Windows, Linux, and macOS.
 
 ---
 
@@ -148,20 +150,44 @@ docker run -d \
 
 ---
 
-## 📱 Android Termux Installation
+## 📱 Android Termux Setup & Troubleshooting
 
-ApiDoct runs natively on Android mobile devices via Termux:
+ApiDoct runs natively on Android mobile devices via **Termux** using Node.js 22.13+ built-in `node:sqlite` database driver:
 
 ```bash
-# Update packages & install dependencies
+# 1. Update Termux repositories & install Node.js 22+
 pkg update && pkg upgrade -y
-pkg install nodejs git python build-essential -y
+pkg install nodejs-lts git python build-essential -y
 
-# Clone & run
+# 2. Clone ApiDoct repository
 git clone https://github.com/Muhammadkhan-2008/apidoct.git
 cd apidoct
+
+# 3. Install dependencies & start server
 npm install
-npm run dev
+npm run dev -w server
+```
+
+> **💡 Termux ARM Troubleshooting Note:**  
+> If `better-sqlite3` fails to compile native C++ binaries on Termux ARM64, ApiDoct automatically catches the platform error and seamlessly falls back to the native `node:sqlite` driver built into Node.js 22.13+. No manual compilation flags needed!
+
+---
+
+## 🔐 Clerk Authentication & Website Sync
+
+ApiDoct features a seamless zero-friction bridge between the [ApiDoct Official Website](https://apidoct.netlify.app) and your local gateway server (`http://localhost:3001`):
+
+1. **User Sign In / Sign Up:** When a user logs in via Clerk on the website, `app.js` dispatches a secure session payload to `POST http://localhost:3001/api/premium/clerk-sync` and `POST /api/auth/clerk-user`.
+2. **Live Telemetry Sync:** The website's user profile badge (`#clerk-user-profile`) connects to `GET /api/analytics?range=24h` to display live token usage, request counts, active provider health, and latency console streams directly inside the web UI.
+
+```bash
+# Verify Clerk Sync on Localhost Server
+curl -X POST http://localhost:3001/api/auth/clerk-user \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "user_2x9aB12c",
+    "email": "user@example.com"
+  }'
 ```
 
 ---
@@ -195,6 +221,17 @@ curl http://localhost:3001/v1/messages \
     "messages": [
       { "role": "user", "content": "Write a Python script to parse JSON." }
     ]
+  }'
+```
+
+### 3. Real-Time Web Search Engine (`POST /api/search`)
+```bash
+curl http://localhost:3001/api/search \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer apidoct-sk-local" \
+  -d '{
+    "query": "latest DeepSeek V4 model release news",
+    "maxResults": 5
   }'
 ```
 

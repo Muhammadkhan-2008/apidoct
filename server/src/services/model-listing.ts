@@ -17,7 +17,8 @@ export interface NormalizedModel {
   intel: number;
   // Platforms that can serve this entry (group members under unify, a single
   // platform otherwise) + tool capability — feeds /v1/models
-  // `supported_parameters` so agents can pick knobs per model.
+  // `supported_parameters` so agents c
+  // an pick knobs per model.
   platforms: string[];
   supportsTools: boolean;
 }

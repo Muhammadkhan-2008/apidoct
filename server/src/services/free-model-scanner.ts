@@ -21,6 +21,7 @@ const EXPANDED_CATALOG_MODELS = [
   // DeepSeek Series
   { platform: 'deepseek', modelId: 'deepseek-chat', displayName: 'DeepSeek V3 (Official)', intelligenceRank: 95, speedRank: 90, sizeLabel: '671B', contextWindow: 64000, supportsVision: false, supportsTools: true, monthlyTokenBudget: '12.0M', monthlyTokenBudgetTokens: 12_000_000, isFreePromo: true },
   { platform: 'deepseek', modelId: 'deepseek-reasoner', displayName: 'DeepSeek R1 (Reasoner)', intelligenceRank: 99, speedRank: 85, sizeLabel: '671B', contextWindow: 64000, supportsVision: false, supportsTools: true, monthlyTokenBudget: '12.0M', monthlyTokenBudgetTokens: 12_000_000, isFreePromo: true },
+  { platform: 'deepseek', modelId: 'deepseek-v4-flash', displayName: 'DeepSeek V4 Flash (MoE Promo)', intelligenceRank: 97, speedRank: 98, sizeLabel: '800B', contextWindow: 128000, supportsVision: true, supportsTools: true, monthlyTokenBudget: '30.0M', monthlyTokenBudgetTokens: 30_000_000, isFreePromo: true },
   { platform: 'deepseek', modelId: 'deepseek-v4-pro', displayName: 'DeepSeek V4 Pro (Promo)', intelligenceRank: 100, speedRank: 92, sizeLabel: '1000B', contextWindow: 128000, supportsVision: true, supportsTools: true, monthlyTokenBudget: '20.0M', monthlyTokenBudgetTokens: 20_000_000, isFreePromo: true },
 
   // Moonshot / Kimi Series
@@ -32,6 +33,10 @@ const EXPANDED_CATALOG_MODELS = [
   { platform: 'zhipu', modelId: 'glm-4-flash', displayName: 'GLM 4 Flash (Free Tier)', intelligenceRank: 85, speedRank: 98, sizeLabel: '14B', contextWindow: 128000, supportsVision: false, supportsTools: true, monthlyTokenBudget: '50.0M', monthlyTokenBudgetTokens: 50_000_000, isFreePromo: true },
   { platform: 'zhipu', modelId: 'glm-4-plus', displayName: 'GLM 4 Plus', intelligenceRank: 94, speedRank: 88, sizeLabel: '100B', contextWindow: 128000, supportsVision: true, supportsTools: true, monthlyTokenBudget: '10.0M', monthlyTokenBudgetTokens: 10_000_000, isFreePromo: true },
   { platform: 'zhipu', modelId: 'glm-5.2-pro', displayName: 'GLM 5.2 Ultra (Free Promo)', intelligenceRank: 99, speedRank: 95, sizeLabel: '300B', contextWindow: 128000, supportsVision: true, supportsTools: true, monthlyTokenBudget: '30.0M', monthlyTokenBudgetTokens: 30_000_000, isFreePromo: true },
+
+  // Groq Accelerated Series
+  { platform: 'groq', modelId: 'deepseek-r1-distill-llama-70b', displayName: 'DeepSeek R1 Distill 70B (Groq 350 tps)', intelligenceRank: 98, speedRank: 99, sizeLabel: '70B', contextWindow: 128000, supportsVision: false, supportsTools: true, monthlyTokenBudget: '14.4M', monthlyTokenBudgetTokens: 14_400_000, isFreePromo: true },
+  { platform: 'groq', modelId: 'llama-3.3-70b-versatile', displayName: 'Llama 3.3 70B Versatile (Groq)', intelligenceRank: 95, speedRank: 98, sizeLabel: '70B', contextWindow: 128000, supportsVision: false, supportsTools: true, monthlyTokenBudget: '14.4M', monthlyTokenBudgetTokens: 14_400_000, isFreePromo: true },
 
   // SiliconFlow Free Series
   { platform: 'siliconflow', modelId: 'Qwen/Qwen2.5-7B-Instruct', displayName: 'Qwen 2.5 7B (SiliconFlow Free)', intelligenceRank: 82, speedRank: 99, sizeLabel: '7B', contextWindow: 32768, supportsVision: false, supportsTools: true, monthlyTokenBudget: '100.0M', monthlyTokenBudgetTokens: 100_000_000, isFreePromo: true },

@@ -33,22 +33,34 @@ export function getDefaultDbPath(): string {
   return DB_PATH;
 }
 
-/** Default factory: opens a better-sqlite3 connection at the given path. */
+function isTermuxEnvironment(): boolean {
+  return (
+    process.platform === 'android' ||
+    Boolean(process.env.TERMUX_VERSION) ||
+    Boolean(process.env.PREFIX?.includes('com.termux'))
+  );
+}
+
+/** Default factory: opens a better-sqlite3 connection at the given path with fallback to node:sqlite on Termux. */
 function betterSqliteFactory(resolvedPath: string): Db {
-  let BetterSqlite: new (path: string) => unknown;
   try {
-    BetterSqlite = runtimeRequire('better-sqlite3') as new (path: string) => unknown;
+    const BetterSqlite = runtimeRequire('better-sqlite3') as new (path: string) => unknown;
+    return new BetterSqlite(resolvedPath) as Db;
   } catch (cause) {
-    throw new Error(
-      'better-sqlite3 is not installed. Reinstall dependencies, or use Node.js 22.13+ on Android/Termux.',
-      { cause },
-    );
+    // Automatic fallback for Termux / ARM Android environments
+    try {
+      return nodeSqliteFactory(resolvedPath);
+    } catch {
+      throw new Error(
+        'better-sqlite3 is not compiled for this platform. Reinstall dependencies or run Node.js 22.13+ for node:sqlite on Termux.',
+        { cause },
+      );
+    }
   }
-  return new BetterSqlite(resolvedPath) as Db;
 }
 
 export function defaultDbFactory(platform: NodeJS.Platform = process.platform): DbFactory {
-  return platform === 'android' ? nodeSqliteFactory : betterSqliteFactory;
+  return isTermuxEnvironment() ? nodeSqliteFactory : betterSqliteFactory;
 }
 
 export function connectDb(
@@ -130,6 +142,22 @@ export function initDb(
   return db;
 }
 
+// Generic key/value settings accessors (used by routing strategy, etc.).
+export function getSetting(key: string): string | undefined {
+  const db = getDb();
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
+  return row?.value;
+}
+
+export function setSetting(key: string, value: string): void {
+  if (key === 'unified_api_key') cachedUnifiedKey = value;
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO settings (key, value) VALUES (?, ?)
+    ON CONFLICT(key) DO UPDATE SET value = excluded.value
+  `).run(key, value);
+}
+
 let cachedUnifiedKey: string | null = null;
 
 export function getUnifiedApiKey(): string {
@@ -149,20 +177,4 @@ export function regenerateUnifiedKey(): string {
   db.prepare("UPDATE settings SET value = ? WHERE key = 'unified_api_key'").run(key);
   cachedUnifiedKey = key;
   return key;
-}
-
-// Generic key/value settings accessors (used by routing strategy, etc.).
-export function getSetting(key: string): string | undefined {
-  const db = getDb();
-  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined;
-  return row?.value;
-}
-
-export function setSetting(key: string, value: string): void {
-  if (key === 'unified_api_key') cachedUnifiedKey = value;
-  const db = getDb();
-  db.prepare(`
-    INSERT INTO settings (key, value) VALUES (?, ?)
-    ON CONFLICT(key) DO UPDATE SET value = excluded.value
-  `).run(key, value);
 }

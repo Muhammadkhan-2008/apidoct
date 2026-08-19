@@ -274,3 +274,23 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
   clearResetCode();
   res.json({ success: true });
 });
+
+// Clerk authentication bridge route for website & localhost gateway sync
+authRouter.post('/clerk-user', (req: Request, res: Response) => {
+  const { userId, email } = req.body || {};
+  if (!email) {
+    res.status(400).json({ error: { message: 'Email is required' } });
+    return;
+  }
+  const sessionToken = createSession(1);
+  res.json({
+    success: true,
+    token: sessionToken,
+    user: {
+      id: userId || 'clerk_user',
+      email: email,
+      role: 'admin',
+      isClerkAuthenticated: true,
+    },
+  });
+});
