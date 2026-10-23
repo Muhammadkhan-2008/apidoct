@@ -1,20 +1,25 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   Plus,
   Trash2,
   Globe,
   MessageSquare,
-  Send,
   Cpu,
   Brain,
   Sparkles,
-  Bot,
   ChevronDown,
   RefreshCw,
   Zap,
   SlidersHorizontal,
+  Sliders,
   X,
+  Menu,
+  KeyRound,
+  BarChart3,
+  Award,
+  ArrowUp,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -127,12 +132,14 @@ function saveSessionsToStorage(sessions: ChatSession[]) {
 }
 
 export default function PlaygroundPage() {
+  const navigate = useNavigate()
   const [sessions, setSessions] = useState<ChatSession[]>(loadSavedSessions)
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
     const saved = loadSavedSessions()
     return saved.length > 0 ? saved[0].id : null
   })
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
 
   const currentSession = sessions.find((s) => s.id === activeSessionId)
   const messages = currentSession?.messages ?? []
@@ -190,9 +197,6 @@ export default function PlaygroundPage() {
   )
   const [systemPrompt, setSystemPrompt] = useState<string>(
     () => localStorage.getItem('playground.systemPrompt') ?? '',
-  )
-  const [systemPromptOpen, setSystemPromptOpen] = useState<boolean>(
-    () => !!localStorage.getItem('playground.systemPrompt'),
   )
 
   const [collapsedReasoning, setCollapsedReasoning] = useState<Record<number, boolean>>({})
@@ -573,42 +577,50 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-4.75rem)] sm:h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-6.5rem)] rounded-2xl md:rounded-3xl border border-white/10 glass-card overflow-hidden shadow-2xl bg-card/60 backdrop-blur-2xl relative w-full min-w-0 max-w-full">
-      {/* Mobile & Tablet Drawer Backdrop & Drawer */}
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground relative">
+      {/* Slide-out Drawer for Mobile & Tablet (when mobileSidebarOpen is true) */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 xl:hidden flex animate-fade-in">
+          {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity"
             onClick={() => setMobileSidebarOpen(false)}
           />
-          <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-card/95 border-r border-border/40 flex flex-col shadow-2xl backdrop-blur-xl">
+          {/* Drawer Panel */}
+          <aside className="relative z-10 w-72 max-w-[85vw] h-full bg-card/95 border-r border-border/40 flex flex-col shadow-2xl backdrop-blur-2xl">
+            {/* Drawer Header */}
             <div className="p-4 border-b border-border/40 flex items-center justify-between">
-              <span className="text-xs font-bold text-foreground flex items-center gap-2">
-                <MessageSquare className="size-4 text-indigo-400" />
-                Conversations
+              <span className="font-extrabold text-sm text-foreground flex items-center gap-2">
+                <span className="flex size-7 items-center justify-center rounded-xl bg-gradient-to-tr from-rose-500 to-indigo-600 text-white font-black text-xs">
+                  A
+                </span>
+                <span>ApiDoct Chat</span>
               </span>
               <button
                 type="button"
                 onClick={() => setMobileSidebarOpen(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground"
+                className="p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                title="Close drawer"
               >
                 <X className="size-4" />
               </button>
             </div>
 
+            {/* New Chat Button */}
             <div className="p-3 border-b border-border/40">
               <Button
                 onClick={() => {
                   handleNewSession()
                   setMobileSidebarOpen(false)
                 }}
-                className="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-extrabold text-xs rounded-xl shadow-md glow-indigo"
+                className="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold text-xs rounded-xl shadow-md glow-indigo py-2"
               >
                 <Plus className="size-4 mr-1.5" />
                 New Conversation
               </Button>
             </div>
 
+            {/* Saved Sessions List */}
             <div className="flex-1 overflow-y-auto p-3 space-y-1.5 custom-scrollbar">
               {sessions.length === 0 ? (
                 <p className="text-center text-xs text-muted-foreground pt-8">No saved chats yet.</p>
@@ -643,12 +655,57 @@ export default function PlaygroundPage() {
                 })
               )}
             </div>
+
+            {/* Drawer Footer Navigation */}
+            <div className="p-3 border-t border-border/40 bg-card/60 space-y-1 text-xs">
+              <p className="text-[10px] font-black text-muted-foreground uppercase px-2 py-1">Navigation</p>
+              <button
+                onClick={() => {
+                  setMobileSidebarOpen(false)
+                  navigate('/keys')
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-bold text-muted-foreground hover:text-indigo-300 hover:bg-accent/40 text-left"
+              >
+                <KeyRound className="size-3.5 text-indigo-400" />
+                <span>Provider Keys</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileSidebarOpen(false)
+                  navigate('/models/chat')
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-bold text-muted-foreground hover:text-cyan-300 hover:bg-accent/40 text-left"
+              >
+                <Cpu className="size-3.5 text-cyan-400" />
+                <span>Inference Models</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileSidebarOpen(false)
+                  navigate('/analytics')
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-bold text-muted-foreground hover:text-emerald-300 hover:bg-accent/40 text-left"
+              >
+                <BarChart3 className="size-3.5 text-emerald-400" />
+                <span>Telemetry</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMobileSidebarOpen(false)
+                  navigate('/premium')
+                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-xl font-bold text-muted-foreground hover:text-amber-300 hover:bg-accent/40 text-left"
+              >
+                <Award className="size-3.5 text-amber-400" />
+                <span>ApiDoct Pro</span>
+              </button>
+            </div>
           </aside>
         </div>
       )}
 
-      {/* Desktop Chat Sessions Sidebar */}
-      <aside className="hidden xl:flex xl:w-64 shrink-0 border-r border-border/40 bg-card/40 flex-col h-full">
+      {/* Desktop Sessions Sidebar (Pinned on xl: screens) */}
+      <aside className="hidden xl:flex xl:w-64 shrink-0 border-r border-border/40 bg-card/30 flex-col h-full">
         <div className="p-4 border-b border-border/40 flex items-center justify-between">
           <Button
             onClick={handleNewSession}
@@ -693,358 +750,440 @@ export default function PlaygroundPage() {
       </aside>
 
       {/* Main Chat Interface */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Controls Header */}
-        <div className="border-b border-border/40 bg-card/20 shrink-0">
-          <div className="px-3 sm:px-6 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            {/* Top/Left Row: Chat Drawer Button + Model Combobox + Scan */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              {/* Mobile/Tablet Chat Drawer Button */}
-              <button
-                type="button"
-                onClick={() => setMobileSidebarOpen(true)}
-                className="xl:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 bg-card/60 text-indigo-300 text-xs font-bold hover:bg-accent/40 active:scale-95 shrink-0 shadow-sm"
-                title="Saved Conversations"
-              >
-                <MessageSquare className="size-3.5" />
-                <span className="hidden sm:inline">Chats</span>
-              </button>
-
-              <ModelCombobox
-                value={selectedModel}
-                onSelect={(val) => {
-                  setSelectedModel(val)
-                  localStorage.setItem('playground.model', val)
-                }}
-                options={modelOptions}
-                ariaLabel="Select model"
-                placeholder="Search model..."
-                emptyText="No model found"
-                triggerClassName="flex h-8 flex-1 min-w-[120px] max-w-[260px] items-center justify-between gap-1.5 rounded-xl border border-white/10 bg-card/60 px-2.5 text-xs font-bold outline-none hover:bg-accent/40 text-foreground"
-              />
-
-              {/* Live Scan Free Models Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleScanFreeModels}
-                disabled={scanningModels}
-                className="h-8 text-xs font-bold rounded-xl border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 shrink-0 px-2 sm:px-3"
-              >
-                <RefreshCw className={`size-3.5 sm:mr-1.5 ${scanningModels ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{scanningModels ? 'Scanning...' : '⚡ Scan Free'}</span>
-                <span className="sm:hidden">{scanningModels ? '...' : '⚡ Free'}</span>
-              </Button>
-            </div>
-
-            {/* Bottom/Right Row: Actions Ribbon (Smooth horizontal touch scrolling on mobile/tablet) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 max-w-full shrink-0">
-              {/* Agent Mode Toggle */}
-              <button
-                type="button"
-                onClick={toggleAgentMode}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                  agentMode
-                    ? 'bg-gradient-to-r from-purple-500/25 via-indigo-500/25 to-cyan-500/20 text-cyan-300 border-cyan-500/50 glow-indigo shadow-lg'
-                    : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
-                }`}
-              >
-                <Sparkles className={`size-3.5 ${agentMode ? 'text-cyan-400 animate-pulse' : 'text-muted-foreground'}`} />
-                <span>Agent: {agentMode ? 'Active' : 'Off'}</span>
-              </button>
-
-              {/* Reasoning Effort Pills */}
-              <div className="flex items-center bg-card/60 border border-white/10 rounded-xl p-0.5 text-[11px] font-bold shrink-0">
-                <span className="px-1.5 text-muted-foreground flex items-center gap-1">
-                  <Brain className="size-3 text-indigo-400" />
-                  <span className="hidden sm:inline">Effort:</span>
-                </span>
-                {(['off', 'low', 'medium', 'high'] as ReasoningEffort[]).map((lvl) => (
-                  <button
-                    key={lvl}
-                    type="button"
-                    onClick={() => updateEffort(lvl)}
-                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg uppercase transition-all text-[10px] sm:text-[11px] ${
-                      reasoningEffort === lvl
-                        ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-extrabold shadow'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {lvl === 'medium' ? 'med' : lvl}
-                  </button>
-                ))}
-              </div>
-
-              {/* Web Search Button */}
-              <button
-                type="button"
-                onClick={() => setWebSearchEnabled((v) => !v)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                  webSearchEnabled
-                    ? 'bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-transparent text-emerald-400 border-emerald-500/40 glow-emerald'
-                    : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
-                }`}
-              >
-                <Globe className="size-3.5 text-emerald-400" />
-                <span>Web: {webSearchEnabled ? 'On' : 'Off'}</span>
-              </button>
-
-              {/* System Prompt Toggle */}
-              <button
-                type="button"
-                onClick={() => setSystemPromptOpen((o) => !o)}
-                className={`px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all shrink-0 ${
-                  systemPromptOpen || systemPrompt
-                    ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
-                    : 'border-border/40 text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <SlidersHorizontal className="size-3.5 inline mr-1" />
-                <span>{systemPrompt ? 'Prompt*' : 'Prompt'}</span>
-              </button>
-            </div>
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+        {/* ChatGPT-style Single-Row Top Header */}
+        <header className="h-14 shrink-0 border-b border-border/40 bg-card/30 backdrop-blur-xl px-3 sm:px-6 flex items-center justify-between gap-2 z-10">
+          {/* Left: Menu Drawer Toggle on mobile/tablet */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              className="xl:hidden flex size-9 items-center justify-center rounded-xl border border-white/10 bg-card/60 text-foreground hover:bg-accent/50 active:scale-95 transition-all shadow-xs"
+              title="Open Conversations"
+              aria-label="Open Conversations"
+            >
+              <Menu className="size-4" />
+            </button>
           </div>
-        </div>
 
-        {/* Scan Status Toast Notification */}
+          {/* Center: Model Selector Pill (ChatGPT style) */}
+          <div className="flex items-center justify-center flex-1 min-w-0 max-w-sm mx-auto">
+            <ModelCombobox
+              value={selectedModel}
+              onSelect={(val) => {
+                setSelectedModel(val)
+                localStorage.setItem('playground.model', val)
+              }}
+              options={modelOptions}
+              ariaLabel="Select model"
+              placeholder="Search model..."
+              emptyText="No model found"
+              triggerClassName="flex h-9 w-full max-w-[200px] sm:max-w-[260px] items-center justify-between gap-1.5 rounded-2xl border border-white/10 bg-card/70 px-3 text-xs font-bold outline-none hover:bg-accent/50 text-foreground shadow-xs transition-colors"
+            />
+          </div>
+
+          {/* Right Actions: Scan, Options, and New Chat */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Scan Free Models */}
+            <button
+              type="button"
+              onClick={handleScanFreeModels}
+              disabled={scanningModels}
+              className="flex size-9 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 active:scale-95 transition-all shadow-xs"
+              title={scanningModels ? "Scanning for free models..." : "Scan live free models"}
+            >
+              <RefreshCw className={`size-4 ${scanningModels ? 'animate-spin' : ''}`} />
+            </button>
+
+            {/* Agent Settings & Tuning Options Modal Trigger */}
+            <button
+              type="button"
+              onClick={() => setOptionsOpen(true)}
+              className={`relative flex size-9 items-center justify-center rounded-xl border transition-all active:scale-95 shadow-xs ${
+                agentMode || webSearchEnabled || systemPrompt
+                  ? 'border-indigo-500/50 bg-indigo-500/20 text-indigo-300'
+                  : 'border-white/10 bg-card/60 text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              }`}
+              title="Agent options & persona presets"
+            >
+              <SlidersHorizontal className="size-4" />
+              {(agentMode || webSearchEnabled || systemPrompt) && (
+                <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-cyan-400 animate-pulse" />
+              )}
+            </button>
+
+            {/* New Chat Button */}
+            <button
+              type="button"
+              onClick={handleNewSession}
+              className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold hover:opacity-90 active:scale-95 shadow-md glow-indigo"
+              title="Start new conversation"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+        </header>
+
+        {/* Free Scan Status Toast */}
         {scanResult && (
-          <div className="px-6 py-2 bg-gradient-to-r from-cyan-950/60 to-indigo-950/60 border-b border-cyan-500/30 text-xs font-semibold text-cyan-300 flex items-center justify-between animate-fade-in">
+          <div className="px-4 py-2 bg-gradient-to-r from-cyan-950/70 to-indigo-950/70 border-b border-cyan-500/30 text-xs font-semibold text-cyan-300 flex items-center justify-between animate-fade-in shrink-0">
             <span className="flex items-center gap-2">
-              <Zap className="size-3.5 text-cyan-400" />
-              {scanResult}
+              <Zap className="size-3.5 text-cyan-400 shrink-0" />
+              <span className="truncate">{scanResult}</span>
             </span>
-            <button onClick={() => setScanResult(null)} className="text-cyan-400/60 hover:text-cyan-200 text-xs">
+            <button onClick={() => setScanResult(null)} className="text-cyan-400/60 hover:text-cyan-200 text-xs ml-2">
               ✕
             </button>
           </div>
         )}
 
-        {/* Agent Persona Bar (visible in Agent Mode) */}
-        {agentMode && (
-          <div className="px-3 sm:px-6 py-2 bg-accent/20 border-b border-border/40 flex items-center justify-between gap-2 overflow-x-auto text-xs whitespace-nowrap scrollbar-none">
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap shrink-0">
-              <span className="font-bold text-muted-foreground flex items-center gap-1.5 shrink-0">
-                <Bot className="size-3.5 text-indigo-400" />
-                <span className="hidden sm:inline">Persona:</span>
-              </span>
-              {(Object.keys(AGENT_PERSONAS) as AgentPersonaKey[]).map((key) => {
-                const p = AGENT_PERSONAS[key]
-                const active = agentPersona === key
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => selectPersona(key)}
-                    className={`px-2.5 py-1 rounded-xl font-bold transition-all border text-xs shrink-0 ${
-                      active
-                        ? 'bg-indigo-500/25 border-indigo-500/50 text-indigo-300 shadow-sm'
-                        : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-card/40'
-                    }`}
-                  >
-                    {p.name}
-                  </button>
-                )
-              })}
-            </div>
-            <span className="text-[11px] text-muted-foreground hidden lg:inline shrink-0">
-              {AGENT_PERSONAS[agentPersona].description}
-            </span>
-          </div>
-        )}
-
-        {/* Custom System Prompt Drawer */}
-        {systemPromptOpen && (
-          <div className="p-3 sm:p-4 border-b border-border/40 bg-accent/10 shrink-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-indigo-300">Agent System Instructions</label>
-              <button
-                type="button"
-                onClick={() => updateSystemPrompt(AGENT_PERSONAS[agentPersona].prompt)}
-                className="text-[11px] text-cyan-400 hover:underline"
-              >
-                Reset to {AGENT_PERSONAS[agentPersona].name} Preset
-              </button>
-            </div>
-            <textarea
-              value={systemPrompt}
-              onChange={(e) => updateSystemPrompt(e.target.value)}
-              placeholder="System prompt: Instruct ApiDoct model behavior, role, constraints..."
-              className="w-full h-20 bg-card/60 border border-white/10 rounded-2xl p-3 text-xs outline-none focus:border-indigo-500/50"
-            />
-          </div>
-        )}
-
-        {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 md:p-6 space-y-3 sm:space-y-4 custom-scrollbar min-w-0">
+        {/* Chat Messages Stream */}
+        <div className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-4 custom-scrollbar">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-3 p-6 sm:p-8 text-muted-foreground">
+            <div className="h-full min-h-[300px] flex flex-col items-center justify-center text-center space-y-3 p-6 text-muted-foreground max-w-md mx-auto">
               <div className="relative">
-                <Cpu className="size-10 sm:size-12 text-indigo-400 opacity-60" />
+                <div className="size-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-xl">
+                  <Brain className="size-6 text-white" />
+                </div>
                 {agentMode && (
-                  <Sparkles className="size-4 sm:size-5 text-cyan-400 absolute -top-1 -right-1 animate-pulse" />
+                  <Sparkles className="size-5 text-cyan-400 absolute -top-1 -right-1 animate-pulse" />
                 )}
               </div>
-              <h3 className="text-sm font-extrabold text-foreground">
-                ApiDoct AI Playground {agentMode && '— Autonomous Agent Mode'}
+              <h3 className="text-base font-extrabold text-foreground">
+                ApiDoct AI Assistant
               </h3>
-              <p className="text-xs max-w-md leading-relaxed text-muted-foreground">
-                Test any model, stream DeepSeek / Gemini step-by-step reasoning, enable real-time web citations, or
-                switch to autonomous agent persona presets.
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                What can I help you with today? Choose any model, activate autonomous reasoning, or ask for code with live in-browser preview.
               </p>
             </div>
           ) : (
-            messages.map((msg, index) => {
-              const isCollapsed = collapsedReasoning[index] ?? false
-              return (
-                <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className="max-w-3xl w-full mx-auto space-y-4">
+              {messages.map((msg, index) => {
+                const isCollapsed = collapsedReasoning[index] ?? false
+                return (
                   <div
-                    className={`w-full max-w-[95%] sm:max-w-2xl rounded-2xl sm:rounded-3xl p-3 sm:p-4 text-xs shadow-md break-words ${
-                      msg.role === 'user'
-                        ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-br-none font-medium'
-                        : msg.isError
-                          ? 'bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-bl-none'
-                          : 'glass-card border-white/10 bg-card/80 text-foreground rounded-bl-none'
-                    }`}
+                    key={index}
+                    className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} w-full`}
                   >
-                    {/* Live Web Search Citations */}
-                    {msg.searchSources && msg.searchSources.length > 0 && (
-                      <div className="mb-3 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 space-y-1">
-                        <p className="font-extrabold flex items-center gap-1.5">
-                          <Globe className="size-3.5" /> Live Web Search Citations ({msg.searchSources.length} sources)
-                        </p>
-                        <ul className="space-y-0.5 pl-4 list-disc text-[10px] text-emerald-300/80">
-                          {msg.searchSources.slice(0, 3).map((s, i) => (
-                            <li key={i} className="truncate">
-                              <a
-                                href={s.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline hover:text-emerald-200"
-                              >
-                                {s.title}
-                              </a>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <div
+                      className={`rounded-3xl p-3.5 sm:p-4 text-xs sm:text-sm shadow-md break-words overflow-hidden ${
+                        msg.role === 'user'
+                          ? 'max-w-[85%] bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-br-none font-medium ml-auto'
+                          : msg.isError
+                            ? 'w-full bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-bl-none'
+                            : 'w-full bg-card/80 border border-white/10 text-foreground rounded-bl-none shadow-sm'
+                      }`}
+                    >
+                      {/* Live Web Search Citations */}
+                      {msg.searchSources && msg.searchSources.length > 0 && (
+                        <div className="mb-3 p-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 space-y-1">
+                          <p className="font-extrabold flex items-center gap-1.5">
+                            <Globe className="size-3.5 shrink-0" />
+                            <span>Live Web Citations ({msg.searchSources.length} sources)</span>
+                          </p>
+                          <ul className="space-y-0.5 pl-4 list-disc text-[10px] text-emerald-300/80">
+                            {msg.searchSources.slice(0, 3).map((s, i) => (
+                              <li key={i} className="truncate">
+                                <a href={s.url} target="_blank" rel="noreferrer" className="underline hover:text-emerald-200">
+                                  {s.title}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
-                    {/* Agentic Reasoning / Thought Process Accordion */}
-                    {Boolean(msg.reasoning) && (
-                      <div className="mb-3 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-card/60 backdrop-blur-xl overflow-hidden shadow-lg transition-all">
-                        <button
-                          type="button"
-                          onClick={() => toggleReasoningCollapse(index)}
-                          className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-center justify-between text-xs font-bold text-indigo-300 hover:bg-indigo-500/10 transition-colors gap-2"
-                        >
-                          <span className="flex items-center gap-1.5 sm:gap-2 truncate">
-                            <span className="relative flex size-2 shrink-0">
-                              {msg.isThinking && (
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
-                              )}
-                              <span
-                                className={`relative inline-flex rounded-full size-2 ${
-                                  msg.isThinking ? 'bg-cyan-500' : 'bg-indigo-500'
-                                }`}
-                              />
+                      {/* Reasoning Accordion */}
+                      {Boolean(msg.reasoning) && (
+                        <div className="mb-3 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/40 via-purple-950/20 to-card/60 backdrop-blur-xl overflow-hidden shadow-lg transition-all">
+                          <button
+                            type="button"
+                            onClick={() => toggleReasoningCollapse(index)}
+                            className="w-full px-3 py-2 sm:px-3.5 sm:py-2.5 flex items-center justify-between text-xs font-bold text-indigo-300 hover:bg-indigo-500/10 transition-colors gap-2"
+                          >
+                            <span className="flex items-center gap-1.5 truncate">
+                              <Brain className={`size-3.5 shrink-0 text-cyan-400 ${msg.isThinking ? 'animate-pulse' : ''}`} />
+                              <span className="truncate">
+                                {msg.isThinking ? 'Thinking & Reasoning...' : 'Thought Process'}
+                              </span>
+                              <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/20 text-indigo-200 font-mono border border-indigo-500/30 shrink-0">
+                                {msg.reasoning?.length ?? 0} chars
+                              </span>
                             </span>
-                            <Brain
-                              className={`size-3.5 shrink-0 text-cyan-400 ${msg.isThinking ? 'animate-pulse' : ''}`}
-                            />
-                            <span className="truncate">
-                              {msg.isThinking
-                                ? 'Agent Reasoning...'
-                                : 'Agent Thought Process'}
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium shrink-0">
+                              <span>{isCollapsed ? 'Show' : 'Hide'}</span>
+                              <ChevronDown className={`size-3 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
                             </span>
-                            <span className="hidden sm:inline-block px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-500/20 text-indigo-200 font-mono border border-indigo-500/30 shrink-0">
-                              {msg.reasoning?.length ?? 0} chars
-                            </span>
-                          </span>
-                          <span className="flex items-center gap-1 text-[10px] sm:text-[11px] text-muted-foreground font-medium shrink-0 ml-1">
-                            <span>{isCollapsed ? 'Show' : 'Hide'}</span>
-                            <ChevronDown
-                              className={`size-3 sm:size-3.5 transition-transform duration-200 ${
-                                isCollapsed ? '' : 'rotate-180'
-                              }`}
-                            />
-                          </span>
-                        </button>
-                        {!isCollapsed && (
-                          <div className="px-3 pb-3 pt-1 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap leading-relaxed border-t border-indigo-500/20 bg-black/40 custom-scrollbar max-h-80 overflow-y-auto select-text break-words">
-                            {msg.reasoning}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Final Assistant Response Content */}
-                    {msg.content ? (
-                      <Markdown>{msg.content}</Markdown>
-                    ) : msg.isThinking ? (
-                      <div className="flex items-center gap-2 py-2 text-indigo-400 text-xs italic">
-                        <Brain className="size-4 animate-spin text-cyan-400" />
-                        <span>Synthesizing final answer from reasoning steps...</span>
-                      </div>
-                    ) : null}
-
-                    {/* Meta Footer */}
-                    {msg.meta && (
-                      <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground font-mono flex-wrap gap-2">
-                        <span className="flex items-center gap-1.5">
-                          <span>{msg.meta.model ?? 'ApiDoct Router'}</span>
-                          {msg.meta.reasoningEffort && msg.meta.reasoningEffort !== 'off' && (
-                            <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 text-[9px] uppercase font-bold">
-                              CoT: {msg.meta.reasoningEffort}
-                            </span>
+                          </button>
+                          {!isCollapsed && (
+                            <div className="px-3 pb-3 pt-1 text-[11px] font-mono text-muted-foreground/90 whitespace-pre-wrap leading-relaxed border-t border-indigo-500/20 bg-black/40 custom-scrollbar max-h-80 overflow-y-auto select-text break-words">
+                              {msg.reasoning}
+                            </div>
                           )}
-                          {msg.meta.agentMode && (
-                            <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-bold">
-                              Agent
-                            </span>
-                          )}
-                        </span>
-                        {msg.meta.latency && <span>{msg.meta.latency} ms</span>}
-                      </div>
-                    )}
+                        </div>
+                      )}
+
+                      {/* Message Content */}
+                      {msg.content ? (
+                        <Markdown>{msg.content}</Markdown>
+                      ) : msg.isThinking ? (
+                        <div className="flex items-center gap-2 py-2 text-indigo-400 text-xs italic">
+                          <Brain className="size-4 animate-spin text-cyan-400" />
+                          <span>Synthesizing response from reasoning steps...</span>
+                        </div>
+                      ) : null}
+
+                      {/* Meta Footer */}
+                      {msg.meta && (
+                        <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[10px] text-muted-foreground font-mono flex-wrap gap-2">
+                          <span className="flex items-center gap-1.5">
+                            <span>{msg.meta.model ?? 'ApiDoct Router'}</span>
+                            {msg.meta.reasoningEffort && msg.meta.reasoningEffort !== 'off' && (
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 text-[9px] uppercase font-bold">
+                                CoT: {msg.meta.reasoningEffort}
+                              </span>
+                            )}
+                            {msg.meta.agentMode && (
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-bold">
+                                Agent
+                              </span>
+                            )}
+                          </span>
+                          {msg.meta.latency && <span>{msg.meta.latency} ms</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            })
+                )
+              })}
+              <div ref={messagesEndRef} />
+            </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <div className="p-2.5 sm:p-4 border-t border-border/40 bg-card/40 shrink-0">
-          <div className="flex items-end sm:items-center gap-2 sm:gap-3 bg-card/60 border border-white/10 rounded-2xl p-2 focus-within:border-indigo-500/50">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault()
-                  sendMessage()
+        {/* ChatGPT-style Bottom Prompt Bar */}
+        <div className="p-2 sm:p-4 shrink-0 bg-gradient-to-t from-background via-background/90 to-transparent">
+          <div className="max-w-3xl w-full mx-auto">
+            <div className="flex items-end gap-1.5 sm:gap-2 bg-card/90 border border-white/15 rounded-3xl p-1.5 sm:p-2 shadow-2xl focus-within:border-indigo-500/60 transition-all">
+              {/* Quick Web Search Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setWebSearchEnabled((v) => !v)}
+                className={`size-8 sm:size-9 rounded-2xl flex items-center justify-center transition-all shrink-0 ${
+                  webSearchEnabled
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 glow-emerald'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                }`}
+                title={webSearchEnabled ? 'Web search enabled' : 'Enable live web search'}
+              >
+                <Globe className="size-4" />
+              </button>
+
+              {/* Quick Agent Reasoning Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleAgentMode}
+                className={`size-8 sm:size-9 rounded-2xl flex items-center justify-center transition-all shrink-0 ${
+                  agentMode
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 glow-indigo'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+                }`}
+                title={agentMode ? 'Agent Mode enabled' : 'Enable Autonomous Agent mode'}
+              >
+                <Sparkles className="size-4" />
+              </button>
+
+              {/* Prompt Textarea */}
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    sendMessage()
+                  }
+                }}
+                placeholder={
+                  agentMode
+                    ? `[${AGENT_PERSONAS[agentPersona].name}] Message ApiDoct...`
+                    : 'Message ApiDoct...'
                 }
-              }}
-              placeholder={
-                agentMode
-                  ? `[${AGENT_PERSONAS[agentPersona].name}] Ask any complex task, coding problem, or reasoning inquiry...`
-                  : 'Ask ApiDoct anything...'
-              }
-              rows={1}
-              className="flex-1 bg-transparent border-0 text-xs sm:text-sm text-foreground outline-none resize-none px-2 py-1 min-h-[38px] max-h-32"
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
-              className="bg-gradient-to-r from-indigo-600 to-cyan-600 text-white rounded-xl px-3 sm:px-4 py-2 text-xs font-bold shadow-md glow-indigo shrink-0"
-            >
-              <Send className="size-3.5 sm:mr-1" />
-              <span className="hidden sm:inline">Send</span>
-            </Button>
+                rows={1}
+                className="flex-1 bg-transparent border-0 text-xs sm:text-sm text-foreground outline-none resize-none px-2 py-2 min-h-[36px] max-h-36 custom-scrollbar"
+              />
+
+              {/* Send Button */}
+              <button
+                type="button"
+                onClick={sendMessage}
+                disabled={loading || !input.trim()}
+                className="size-8 sm:size-9 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-bold flex items-center justify-center shrink-0 disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-95 active:scale-95 shadow-md glow-indigo transition-all"
+                title="Send message"
+              >
+                <ArrowUp className="size-4" />
+              </button>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground mt-1.5 font-medium hidden sm:block">
+              ApiDoct provides free, unified gateway routing with autonomous reasoning.
+            </p>
           </div>
         </div>
+
+        {/* Agent Options & Tuning Bottom-Sheet / Modal (optionsOpen) */}
+        {optionsOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+              onClick={() => setOptionsOpen(false)}
+            />
+
+            {/* Modal Panel */}
+            <div className="relative z-10 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-white/10 bg-card/95 p-5 shadow-2xl backdrop-blur-2xl max-h-[85vh] overflow-y-auto custom-scrollbar">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-border/40 mb-4">
+                <div className="flex items-center gap-2">
+                  <Sliders className="size-4 text-indigo-400" />
+                  <h3 className="font-extrabold text-sm text-foreground">Playground & Agent Options</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOptionsOpen(false)}
+                  className="size-7 flex items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent/40"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              {/* Agent Mode Switch */}
+              <div className="mb-4 p-3 rounded-2xl border border-white/10 bg-accent/20 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Sparkles className="size-3.5 text-cyan-400" />
+                    Autonomous Agent Mode
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Enables deep step-by-step reasoning & specialized personas
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={toggleAgentMode}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                    agentMode
+                      ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow'
+                      : 'border-border/40 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {agentMode ? 'ACTIVE' : 'OFF'}
+                </button>
+              </div>
+
+              {/* Persona Preset Picker */}
+              <div className="mb-4">
+                <label className="text-xs font-bold text-muted-foreground block mb-2">Agent Persona Presets</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(AGENT_PERSONAS) as AgentPersonaKey[]).map((key) => {
+                    const p = AGENT_PERSONAS[key]
+                    const active = agentPersona === key
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => selectPersona(key)}
+                        className={`p-2.5 rounded-2xl border text-left transition-all ${
+                          active
+                            ? 'border-indigo-500/60 bg-indigo-500/20 text-indigo-200 shadow-sm'
+                            : 'border-white/10 bg-accent/10 text-muted-foreground hover:text-foreground hover:bg-accent/20'
+                        }`}
+                      >
+                        <p className="font-extrabold text-xs">{p.name}</p>
+                        <p className="text-[10px] text-muted-foreground/80 line-clamp-2 mt-0.5">
+                          {p.description}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Reasoning Effort (CoT) */}
+              <div className="mb-4">
+                <label className="text-xs font-bold text-muted-foreground block mb-2">
+                  Chain-of-Thought Reasoning Effort
+                </label>
+                <div className="grid grid-cols-4 gap-1.5 bg-card/60 border border-white/10 rounded-2xl p-1 text-xs font-bold">
+                  {(['off', 'low', 'medium', 'high'] as ReasoningEffort[]).map((lvl) => (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => updateEffort(lvl)}
+                      className={`py-1.5 rounded-xl uppercase text-center transition-all ${
+                        reasoningEffort === lvl
+                          ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white shadow font-extrabold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {lvl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Web Search Citations */}
+              <div className="mb-4 p-3 rounded-2xl border border-white/10 bg-accent/20 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                    <Globe className="size-3.5 text-emerald-400" />
+                    Live Web Search
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Fetches verified real-time web citations for answers
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWebSearchEnabled((v) => !v)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all border ${
+                    webSearchEnabled
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow'
+                      : 'border-border/40 text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {webSearchEnabled ? 'ON' : 'OFF'}
+                </button>
+              </div>
+
+              {/* System Instructions Prompt */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-bold text-muted-foreground">Custom System Instructions</label>
+                  <button
+                    type="button"
+                    onClick={() => updateSystemPrompt(AGENT_PERSONAS[agentPersona].prompt)}
+                    className="text-[11px] text-cyan-400 hover:underline"
+                  >
+                    Reset Preset
+                  </button>
+                </div>
+                <textarea
+                  value={systemPrompt}
+                  onChange={(e) => updateSystemPrompt(e.target.value)}
+                  placeholder="Instruct model behavior, persona, rules, constraints..."
+                  className="w-full h-24 bg-card/60 border border-white/10 rounded-2xl p-3 text-xs outline-none focus:border-indigo-500/50"
+                />
+              </div>
+
+              {/* Done Button */}
+              <Button
+                onClick={() => setOptionsOpen(false)}
+                className="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 text-white font-extrabold text-xs rounded-xl py-2.5 shadow-md glow-indigo"
+              >
+                Done
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

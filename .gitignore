@@ -22,3 +22,7 @@ update-hermes.sh
 # Monetization planning — private, never committed
 monetization/
 server.log
+
+# User screenshots
+Screenshot_*.jpg
+Screenshot_*.png

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, use
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { KeyRound, LogOut, Menu, MoreHorizontal, Search, Settings, Sparkles, Activity, Cpu, Layers, MessageSquare, Dna, Image as ImageIcon, Mic, Network, Lock, BarChart3, Award, BookOpen } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -358,12 +359,12 @@ function SidebarNav() {
   )
 }
 
-function TopHeader() {
+function TopHeader({ className }: { className?: string }) {
   const { t } = useI18n()
   const navigate = useNavigate()
 
   return (
-    <header className="h-14 sm:h-16 md:h-20 border-b border-white/10 glass-card px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-xl bg-card/60 backdrop-blur-2xl">
+    <header className={cn("h-14 sm:h-16 md:h-20 border-b border-white/10 glass-card px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-xl bg-card/60 backdrop-blur-2xl", className)}>
       <div className="flex items-center gap-2 sm:gap-4 min-w-0">
         <div className="xl:hidden shrink-0">
           <Brand />
@@ -441,6 +442,54 @@ function PageBoundary({ children }: { children: ReactNode }) {
   return <ErrorBoundary key={location.pathname}>{children}</ErrorBoundary>
 }
 
+function AppLayout() {
+  const location = useLocation()
+  const isPlayground = location.pathname.startsWith('/playground')
+
+  return (
+    <div className={`min-h-screen flex ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'} overflow-x-hidden w-full max-w-full`}>
+      <SidebarNav />
+      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
+        <TopHeader className={isPlayground ? 'hidden md:flex' : ''} />
+        <main
+          className={cn(
+            'flex-1 p-2 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0',
+            isPlayground && 'p-0 sm:p-2 md:p-6 max-w-none h-dvh md:h-[calc(100vh-5rem)] overflow-hidden flex flex-col',
+          )}
+        >
+          <PageBoundary>
+            <Routes>
+              <Route path="/" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/models" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/models/chat" element={<FallbackPage />} />
+              <Route path="/models/chat/:id" element={<ModelDetailPage />} />
+              <Route path="/models/fusion" element={<FusionPage />} />
+              <Route path="/models/embeddings" element={<EmbeddingsPage />} />
+              <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
+              <Route path="/models/image" element={<ImagePage />} />
+              <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
+              <Route path="/models/audio" element={<AudioPage />} />
+              <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
+              <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
+              <Route path="/playground" element={<PlaygroundPage />} />
+              <Route path="/keys" element={<KeysPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/test" element={<Navigate to="/playground" replace />} />
+              <Route path="/health" element={<Navigate to="/keys" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </PageBoundary>
+        </main>
+      </div>
+      <Toaster />
+      <CommandPalette />
+    </div>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -448,41 +497,7 @@ function App() {
         <I18nProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <AuthGate>
-              <div className={`min-h-screen flex ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'} overflow-x-hidden w-full max-w-full`}>
-                <SidebarNav />
-                <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
-                  <TopHeader />
-                  <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
-                    <PageBoundary>
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/models/chat" replace />} />
-                        <Route path="/models" element={<Navigate to="/models/chat" replace />} />
-                        <Route path="/models/chat" element={<FallbackPage />} />
-                        <Route path="/models/chat/:id" element={<ModelDetailPage />} />
-                        <Route path="/models/fusion" element={<FusionPage />} />
-                        <Route path="/models/embeddings" element={<EmbeddingsPage />} />
-                        <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
-                        <Route path="/models/image" element={<ImagePage />} />
-                        <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
-                        <Route path="/models/audio" element={<AudioPage />} />
-                        <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
-                        <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
-                        <Route path="/playground" element={<PlaygroundPage />} />
-                        <Route path="/keys" element={<KeysPage />} />
-                        <Route path="/agents" element={<AgentsPage />} />
-                        <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
-                        <Route path="/analytics" element={<AnalyticsPage />} />
-                        <Route path="/premium" element={<PremiumPage />} />
-                        <Route path="/test" element={<Navigate to="/playground" replace />} />
-                        <Route path="/health" element={<Navigate to="/keys" replace />} />
-                        <Route path="*" element={<NotFoundPage />} />
-                      </Routes>
-                    </PageBoundary>
-                  </main>
-                </div>
-                <Toaster />
-                <CommandPalette />
-              </div>
+              <AppLayout />
             </AuthGate>
           </BrowserRouter>
         </I18nProvider>
