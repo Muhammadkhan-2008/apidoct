@@ -399,7 +399,7 @@ export class OpenAICompatProvider extends BaseProvider {
 
   async validateKey(apiKey: string, quotaContext?: QuotaObservationContext): Promise<KeyValidationResult> {
     if (this.platform === 'tavily' || this.platform === 'serper') {
-      return { valid: apiKey && apiKey.trim().length > 0 };
+      return Boolean(apiKey && apiKey.trim().length > 0);
     }
     const res = await this.fetchCatalogEndpoint(this.validateUrl ?? this.modelsUrl, apiKey, quotaContext);
     return this.validationResult(res);

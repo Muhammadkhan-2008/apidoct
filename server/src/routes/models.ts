@@ -14,8 +14,24 @@ import {
 import { pruneUnavailableSavedFusionConfig } from '../services/fusion.js';
 import { getActiveProfileId } from '../services/profile-models.js';
 import { qualifiedModelMemberId } from '../lib/endpoint-scope.js';
+import { scanAndAutoFetchFreeModels } from '../services/free-model-scanner.js';
 
 export const modelsRouter = Router();
+
+modelsRouter.post('/scan', async (_req: Request, res: Response) => {
+  try {
+    const result = await scanAndAutoFetchFreeModels();
+    res.json({
+      success: true,
+      scanned: result.scanned,
+      inserted: result.inserted,
+      updated: result.updated,
+      message: `Live free models scan complete (${result.scanned} scanned, ${result.inserted} added, ${result.updated} refreshed).`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message ?? String(err) });
+  }
+});
 
 const modelUpdateSchema = z.object({
   displayName: z.string().min(1).max(200).optional(),

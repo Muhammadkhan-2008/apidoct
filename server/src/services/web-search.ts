@@ -24,10 +24,10 @@ function getActiveTavilyKeys(): string[] {
   const keys: string[] = [];
   try {
     const db = getDb();
-    const rows = db.prepare("SELECT encrypted_key FROM api_keys WHERE platform = 'tavily' AND enabled = 1").all() as Array<{ encrypted_key: string }>;
+    const rows = db.prepare("SELECT encrypted_key, iv, auth_tag FROM api_keys WHERE platform = 'tavily' AND enabled = 1").all() as Array<{ encrypted_key: string; iv: string; auth_tag: string }>;
     for (const r of rows) {
       try {
-        const decrypted = decrypt(r.encrypted_key);
+        const decrypted = decrypt(r.encrypted_key, r.iv, r.auth_tag);
         if (decrypted) keys.push(decrypted);
       } catch {}
     }

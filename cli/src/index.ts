@@ -38,7 +38,7 @@ function validateProfile(profile: string): string {
 
 export function parseArgs(argv: string[]): { command?: string; options: CliOptions } {
   const options: CliOptions = {
-    url: process.env.APIDOCT_URL || process.env.FREELLMAPI_URL || 'http://localhost:3000',
+    url: process.env.APIDOCT_URL || process.env.FREELLMAPI_URL || 'http://localhost:3001',
     apiKey: process.env.APIDOCT_API_KEY || process.env.FREELLMAPI_API_KEY,
     profile: 'default',
     dryRun: false,

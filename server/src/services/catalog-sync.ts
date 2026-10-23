@@ -144,7 +144,7 @@ interface CatalogTranscriptionModel {
   quotaLabel?: string;
 }
 
-interface Catalog {
+export interface Catalog {
   version: string;
   generatedAt: string;
   tier: 'live' | 'monthly';
