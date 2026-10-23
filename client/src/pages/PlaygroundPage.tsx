@@ -14,7 +14,6 @@ import {
   RefreshCw,
   Zap,
   SlidersHorizontal,
-  Menu,
   X,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
@@ -574,10 +573,10 @@ export default function PlaygroundPage() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-5rem)] sm:h-[calc(100vh-5.5rem)] md:h-[calc(100vh-6rem)] rounded-2xl md:rounded-3xl border border-white/10 glass-card overflow-hidden shadow-2xl bg-card/60 backdrop-blur-2xl relative">
-      {/* Mobile Drawer Backdrop & Drawer */}
+    <div className="flex h-[calc(100dvh-4.75rem)] sm:h-[calc(100dvh-5.5rem)] md:h-[calc(100vh-6.5rem)] rounded-2xl md:rounded-3xl border border-white/10 glass-card overflow-hidden shadow-2xl bg-card/60 backdrop-blur-2xl relative w-full min-w-0 max-w-full">
+      {/* Mobile & Tablet Drawer Backdrop & Drawer */}
       {mobileSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden flex animate-fade-in">
+        <div className="fixed inset-0 z-50 xl:hidden flex animate-fade-in">
           <div
             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setMobileSidebarOpen(false)}
@@ -649,7 +648,7 @@ export default function PlaygroundPage() {
       )}
 
       {/* Desktop Chat Sessions Sidebar */}
-      <aside className="hidden md:flex md:w-64 shrink-0 border-r border-border/40 bg-card/40 flex-col h-full">
+      <aside className="hidden xl:flex xl:w-64 shrink-0 border-r border-border/40 bg-card/40 flex-col h-full">
         <div className="p-4 border-b border-border/40 flex items-center justify-between">
           <Button
             onClick={handleNewSession}
@@ -694,110 +693,117 @@ export default function PlaygroundPage() {
       </aside>
 
       {/* Main Chat Interface */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Controls Header */}
-        <div className="h-auto min-h-14 sm:min-h-16 px-3 sm:px-6 py-2.5 border-b border-border/40 flex flex-wrap items-center justify-between gap-2 sm:gap-3 bg-card/20 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap flex-1 sm:flex-initial">
-            {/* Mobile History / Menu Toggle Button */}
-            <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden flex items-center justify-center size-8 rounded-xl border border-white/10 bg-card/60 text-muted-foreground hover:text-foreground active:scale-95 shrink-0"
-              title="Saved Chats History"
-            >
-              <Menu className="size-4" />
-            </button>
+        <div className="border-b border-border/40 bg-card/20 shrink-0">
+          <div className="px-3 sm:px-6 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            {/* Top/Left Row: Chat Drawer Button + Model Combobox + Scan */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              {/* Mobile/Tablet Chat Drawer Button */}
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className="xl:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-white/10 bg-card/60 text-indigo-300 text-xs font-bold hover:bg-accent/40 active:scale-95 shrink-0 shadow-sm"
+                title="Saved Conversations"
+              >
+                <MessageSquare className="size-3.5" />
+                <span className="hidden sm:inline">Chats</span>
+              </button>
 
-            <ModelCombobox
-              value={selectedModel}
-              onSelect={(val) => {
-                setSelectedModel(val)
-                localStorage.setItem('playground.model', val)
-              }}
-              options={modelOptions}
-              ariaLabel="Select model"
-              placeholder="Search model..."
-              emptyText="No model found"
-            />
+              <ModelCombobox
+                value={selectedModel}
+                onSelect={(val) => {
+                  setSelectedModel(val)
+                  localStorage.setItem('playground.model', val)
+                }}
+                options={modelOptions}
+                ariaLabel="Select model"
+                placeholder="Search model..."
+                emptyText="No model found"
+                triggerClassName="flex h-8 flex-1 min-w-[120px] max-w-[260px] items-center justify-between gap-1.5 rounded-xl border border-white/10 bg-card/60 px-2.5 text-xs font-bold outline-none hover:bg-accent/40 text-foreground"
+              />
 
-            {/* Live Scan Free Models Button */}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleScanFreeModels}
-              disabled={scanningModels}
-              className="h-8 text-xs font-bold rounded-xl border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 shrink-0"
-            >
-              <RefreshCw className={`size-3.5 mr-1 ${scanningModels ? 'animate-spin' : ''}`} />
-              <span>{scanningModels ? 'Scanning...' : '⚡ Scan Free'}</span>
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            {/* Agent Mode Toggle */}
-            <button
-              type="button"
-              onClick={toggleAgentMode}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                agentMode
-                  ? 'bg-gradient-to-r from-purple-500/25 via-indigo-500/25 to-cyan-500/20 text-cyan-300 border-cyan-500/50 glow-indigo shadow-lg'
-                  : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
-              }`}
-            >
-              <Sparkles className={`size-3.5 ${agentMode ? 'text-cyan-400 animate-pulse' : 'text-muted-foreground'}`} />
-              <span>Agent: {agentMode ? 'Active' : 'Off'}</span>
-            </button>
-
-            {/* Reasoning Effort Pills */}
-            <div className="flex items-center bg-card/60 border border-white/10 rounded-xl p-0.5 text-[11px] font-bold">
-              <span className="px-1.5 sm:px-2 text-muted-foreground flex items-center gap-1">
-                <Brain className="size-3 text-indigo-400" />
-                <span className="hidden sm:inline">Effort:</span>
-              </span>
-              {(['off', 'low', 'medium', 'high'] as ReasoningEffort[]).map((lvl) => (
-                <button
-                  key={lvl}
-                  type="button"
-                  onClick={() => updateEffort(lvl)}
-                  className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg uppercase transition-all text-[10px] sm:text-[11px] ${
-                    reasoningEffort === lvl
-                      ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-extrabold shadow'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {lvl === 'medium' ? 'med' : lvl}
-                </button>
-              ))}
+              {/* Live Scan Free Models Button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleScanFreeModels}
+                disabled={scanningModels}
+                className="h-8 text-xs font-bold rounded-xl border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/50 shrink-0 px-2 sm:px-3"
+              >
+                <RefreshCw className={`size-3.5 sm:mr-1.5 ${scanningModels ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{scanningModels ? 'Scanning...' : '⚡ Scan Free'}</span>
+                <span className="sm:hidden">{scanningModels ? '...' : '⚡ Free'}</span>
+              </Button>
             </div>
 
-            {/* Web Search Button */}
-            <button
-              type="button"
-              onClick={() => setWebSearchEnabled((v) => !v)}
-              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                webSearchEnabled
-                  ? 'bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-transparent text-emerald-400 border-emerald-500/40 glow-emerald'
-                  : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
-              }`}
-            >
-              <Globe className="size-3.5 text-emerald-400" />
-              <span>Web: {webSearchEnabled ? 'On' : 'Off'}</span>
-            </button>
+            {/* Bottom/Right Row: Actions Ribbon (Smooth horizontal touch scrolling on mobile/tablet) */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none py-0.5 max-w-full shrink-0">
+              {/* Agent Mode Toggle */}
+              <button
+                type="button"
+                onClick={toggleAgentMode}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  agentMode
+                    ? 'bg-gradient-to-r from-purple-500/25 via-indigo-500/25 to-cyan-500/20 text-cyan-300 border-cyan-500/50 glow-indigo shadow-lg'
+                    : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
+                }`}
+              >
+                <Sparkles className={`size-3.5 ${agentMode ? 'text-cyan-400 animate-pulse' : 'text-muted-foreground'}`} />
+                <span>Agent: {agentMode ? 'Active' : 'Off'}</span>
+              </button>
 
-            {/* System Prompt Toggle */}
-            <button
-              type="button"
-              onClick={() => setSystemPromptOpen((o) => !o)}
-              className={`px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-xl border transition-all ${
-                systemPromptOpen || systemPrompt
-                  ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
-                  : 'border-border/40 text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <SlidersHorizontal className="size-3.5 inline mr-1" />
-              {systemPrompt ? 'Prompt*' : 'Prompt'}
-            </button>
+              {/* Reasoning Effort Pills */}
+              <div className="flex items-center bg-card/60 border border-white/10 rounded-xl p-0.5 text-[11px] font-bold shrink-0">
+                <span className="px-1.5 text-muted-foreground flex items-center gap-1">
+                  <Brain className="size-3 text-indigo-400" />
+                  <span className="hidden sm:inline">Effort:</span>
+                </span>
+                {(['off', 'low', 'medium', 'high'] as ReasoningEffort[]).map((lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => updateEffort(lvl)}
+                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg uppercase transition-all text-[10px] sm:text-[11px] ${
+                      reasoningEffort === lvl
+                        ? 'bg-gradient-to-r from-indigo-500 to-cyan-500 text-white font-extrabold shadow'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {lvl === 'medium' ? 'med' : lvl}
+                  </button>
+                ))}
+              </div>
+
+              {/* Web Search Button */}
+              <button
+                type="button"
+                onClick={() => setWebSearchEnabled((v) => !v)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  webSearchEnabled
+                    ? 'bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-transparent text-emerald-400 border-emerald-500/40 glow-emerald'
+                    : 'border-border/40 text-muted-foreground hover:text-foreground hover:bg-accent/30'
+                }`}
+              >
+                <Globe className="size-3.5 text-emerald-400" />
+                <span>Web: {webSearchEnabled ? 'On' : 'Off'}</span>
+              </button>
+
+              {/* System Prompt Toggle */}
+              <button
+                type="button"
+                onClick={() => setSystemPromptOpen((o) => !o)}
+                className={`px-2.5 py-1.5 text-xs font-bold rounded-xl border transition-all shrink-0 ${
+                  systemPromptOpen || systemPrompt
+                    ? 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30'
+                    : 'border-border/40 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <SlidersHorizontal className="size-3.5 inline mr-1" />
+                <span>{systemPrompt ? 'Prompt*' : 'Prompt'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -870,7 +876,7 @@ export default function PlaygroundPage() {
         )}
 
         {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-4 sm:space-y-5 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-2.5 sm:p-4 md:p-6 space-y-3 sm:space-y-4 custom-scrollbar min-w-0">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center space-y-3 p-6 sm:p-8 text-muted-foreground">
               <div className="relative">

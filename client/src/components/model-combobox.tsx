@@ -93,7 +93,7 @@ export function ModelCombobox({
         <span className="truncate">{triggerLabel}</span>
         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
       </PopoverTrigger>
-      <PopoverContent align={align} className="w-[300px] p-0" onKeyDown={onKeyDown}>
+      <PopoverContent align={align} className="w-[min(300px,calc(100vw-2rem))] max-w-[calc(100vw-1.5rem)] p-0" onKeyDown={onKeyDown}>
         <div className="flex items-center gap-2 border-b px-3">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <input

@@ -51,19 +51,19 @@ const isMac = typeof navigator !== 'undefined' && /mac/i.test(navigator.platform
 // Vibrant 10-Spectrum Spectrum Logo with Glow Multi-Color Accent
 function Brand() {
   return (
-    <Link to="/" className="flex items-center gap-3 transition-all duration-300 hover:opacity-95 group">
-      <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-400 via-emerald-400 via-cyan-400 to-indigo-600 text-white font-black text-lg shadow-2xl transition-transform duration-300 group-hover:scale-105 p-0.5">
-        <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-slate-950/90 text-white font-black">
+    <Link to="/" className="flex items-center gap-2 sm:gap-3 transition-all duration-300 hover:opacity-95 group shrink-0">
+      <div className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-tr from-rose-500 via-amber-400 via-emerald-400 via-cyan-400 to-indigo-600 text-white font-black text-sm sm:text-lg shadow-2xl transition-transform duration-300 group-hover:scale-105 p-0.5 shrink-0">
+        <div className="flex h-full w-full items-center justify-center rounded-[10px] sm:rounded-[14px] bg-slate-950/90 text-white font-black">
           <span className="bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 via-cyan-300 to-indigo-400 bg-clip-text text-transparent">
             A
           </span>
         </div>
       </div>
       <div className="flex flex-col">
-        <span className="font-black tracking-tight text-xl bg-gradient-to-r from-indigo-400 via-purple-300 via-cyan-300 to-emerald-400 bg-clip-text text-transparent leading-none">
+        <span className="font-black tracking-tight text-base sm:text-xl bg-gradient-to-r from-indigo-400 via-purple-300 via-cyan-300 to-emerald-400 bg-clip-text text-transparent leading-none">
           ApiDoct
         </span>
-        <span className="text-[9px] text-amber-400 font-mono mt-1 tracking-widest uppercase font-bold">
+        <span className="text-[8px] sm:text-[9px] text-amber-400 font-mono mt-0.5 sm:mt-1 tracking-widest uppercase font-bold hidden sm:inline">
           Universal Gateway
         </span>
       </div>
@@ -145,7 +145,7 @@ function SidebarNav() {
 
   return (
     <>
-      <aside className="w-72 shrink-0 border-r border-white/10 glass-card hidden md:flex flex-col h-screen sticky top-0 z-30 shadow-2xl bg-card/60 backdrop-blur-2xl">
+      <aside className="w-72 shrink-0 border-r border-white/10 glass-card hidden xl:flex flex-col h-screen sticky top-0 z-30 shadow-2xl bg-card/60 backdrop-blur-2xl">
         <div className="h-20 px-6 border-b border-border/40 flex items-center justify-between bg-card/40">
           <Brand />
         </div>
@@ -363,25 +363,26 @@ function TopHeader() {
   const navigate = useNavigate()
 
   return (
-    <header className="h-20 border-b border-white/10 glass-card px-6 flex items-center justify-between sticky top-0 z-20 shadow-xl bg-card/60 backdrop-blur-2xl">
-      <div className="flex items-center gap-4">
-        <div className="md:hidden">
+    <header className="h-14 sm:h-16 md:h-20 border-b border-white/10 glass-card px-3 sm:px-6 flex items-center justify-between sticky top-0 z-20 shadow-xl bg-card/60 backdrop-blur-2xl">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <div className="xl:hidden shrink-0">
           <Brand />
         </div>
         <button
           type="button"
           onClick={openCommandPalette}
           aria-label={t('palette.title')}
-          className="flex items-center gap-3.5 px-4 py-2 rounded-2xl border border-white/10 bg-card/50 text-xs text-muted-foreground hover:border-indigo-500/50 hover:text-foreground hover:shadow-lg transition-all duration-300 glow-indigo"
+          className="flex items-center gap-2 sm:gap-3.5 p-2 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-2xl border border-white/10 bg-card/50 text-xs text-muted-foreground hover:border-indigo-500/50 hover:text-foreground hover:shadow-lg transition-all duration-300 glow-indigo shrink-0"
         >
-          <Search className="size-4 text-indigo-400" />
-          <span className="font-medium">Search ApiDoct models, key vault or configs...</span>
-          <kbd className="px-2 py-0.5 rounded-lg bg-accent text-[10px] font-mono font-black text-indigo-400 border border-border/40 shadow-xs">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+          <Search className="size-4 text-indigo-400 shrink-0" />
+          <span className="font-medium hidden md:inline">Search ApiDoct models, key vault or configs...</span>
+          <span className="font-medium hidden sm:inline md:hidden">Search...</span>
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 rounded-lg bg-accent text-[10px] font-mono font-black text-indigo-400 border border-border/40 shadow-xs">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
         </button>
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="hidden sm:inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-extrabold bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-md">
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <span className="hidden md:inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full text-xs font-extrabold bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-md">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -389,13 +390,13 @@ function TopHeader() {
           ⚡ ApiDoct Engine Online
         </span>
 
-        <div className="md:hidden">
+        <div className="xl:hidden">
           <DropdownMenu>
             <DropdownMenuTrigger
               className={buttonVariants({ variant: 'ghost', size: 'icon' })}
               aria-label={t('nav.openMenu')}
             >
-              <Menu />
+              <Menu className="size-5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60 glass-card p-2 shadow-2xl">
               <DropdownMenuGroup>
@@ -405,6 +406,15 @@ function TopHeader() {
                 <DropdownMenuItem onClick={() => navigate('/models/embeddings')} className="font-bold text-cyan-400">
                   <Dna className="size-4 mr-2" /> Vector Embeddings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/models/image')} className="font-bold text-purple-400">
+                  <ImageIcon className="size-4 mr-2" /> Visual Media
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/models/audio')} className="font-bold text-emerald-400">
+                  <Mic className="size-4 mr-2" /> Audio & Speech
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/models/fusion')} className="font-bold text-amber-400">
+                  <Network className="size-4 mr-2" /> Smart Router Fusion
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/playground')} className="font-bold text-purple-400">
                   <Cpu className="size-4 mr-2" /> Testing Lab
                 </DropdownMenuItem>
@@ -413,6 +423,9 @@ function TopHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/analytics')} className="font-bold text-emerald-400">
                   <BarChart3 className="size-4 mr-2" /> Telemetry Analytics
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/premium')} className="font-bold text-amber-400">
+                  <Award className="size-4 mr-2" /> ApiDoct Pro
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -435,11 +448,11 @@ function App() {
         <I18nProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
             <AuthGate>
-              <div className={`min-h-screen flex ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'}`}>
+              <div className={`min-h-screen flex ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'} overflow-x-hidden w-full max-w-full`}>
                 <SidebarNav />
-                <div className="flex-1 flex flex-col min-w-0">
+                <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
                   <TopHeader />
-                  <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+                  <main className="flex-1 p-2 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0">
                     <PageBoundary>
                       <Routes>
                         <Route path="/" element={<Navigate to="/models/chat" replace />} />

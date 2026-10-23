@@ -300,22 +300,22 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 
   return (
     <>
-      <div className="my-3 overflow-hidden rounded-2xl border border-zinc-700/60 bg-zinc-950/90 shadow-xl group first:mt-0 last:mb-0">
+      <div className="my-3 overflow-hidden rounded-2xl border border-zinc-700/60 bg-zinc-950/90 shadow-xl group first:mt-0 last:mb-0 max-w-full w-full min-w-0">
         {/* Code Header Bar */}
-        <div className="flex items-center justify-between border-b border-zinc-800/90 bg-zinc-900/90 px-3.5 py-1.5 text-xs text-zinc-400 select-none">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-[11px] font-bold text-zinc-300 uppercase tracking-wider">
+        <div className="flex items-center justify-between border-b border-zinc-800/90 bg-zinc-900/90 px-3 sm:px-3.5 py-1.5 text-xs text-zinc-400 select-none gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-mono text-[11px] font-bold text-zinc-300 uppercase tracking-wider truncate">
               {displayLang}
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             {/* Live Web Preview Button */}
             {isHtml && (
               <button
                 type="button"
                 onClick={() => setShowPreview(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-300 transition-all hover:bg-cyan-500/25 hover:text-cyan-200 active:scale-95 shadow-xs"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-300 transition-all hover:bg-cyan-500/25 hover:text-cyan-200 active:scale-95 shadow-xs shrink-0"
                 title="Preview HTML / CSS / JS in live browser sandbox"
               >
                 <Play className="size-3 fill-current text-cyan-400" />
@@ -327,7 +327,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
             <button
               type="button"
               onClick={handleCopy}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/70 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-all hover:bg-zinc-700 hover:text-white active:scale-95"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/70 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-all hover:bg-zinc-700 hover:text-white active:scale-95 shrink-0"
               title="Copy code to clipboard"
             >
               {copied ? (
@@ -346,7 +346,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
         </div>
 
         {/* Code body */}
-        <pre className="overflow-x-auto p-4 text-[12.5px] font-mono leading-relaxed text-zinc-100 custom-scrollbar select-text bg-[#0d1117] [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:font-mono">
+        <pre className="overflow-x-auto p-3 sm:p-4 text-[12px] sm:text-[12.5px] font-mono leading-relaxed text-zinc-100 custom-scrollbar select-text bg-[#0d1117] [&>code]:bg-transparent [&>code]:p-0 [&>code]:rounded-none [&>code]:font-mono max-w-full">
           {children}
         </pre>
       </div>
@@ -460,7 +460,7 @@ interface MarkdownProps {
 
 function MarkdownInner({ children, className }: MarkdownProps) {
   return (
-    <div className={cn('text-sm leading-relaxed', className)}>
+    <div className={cn('text-sm leading-relaxed max-w-full overflow-hidden break-words', className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}
       </ReactMarkdown>
