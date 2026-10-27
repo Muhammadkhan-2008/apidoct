@@ -49,6 +49,10 @@ export interface FallbackEntry {
   retiredUpstream?: boolean
   retiredReason?: string | null
   keyCount: number
+  isAvailable?: boolean
+  statusCategory?: 'active' | 'rate_limited' | 'no_key' | 'upstream_error' | 'disabled'
+  statusMessage?: string
+  isCoolingDown?: boolean
   // Logical-model grouping (sent by the server when unify is relevant). Absent
   // for ungrouped rows; the UI falls back to a per-row "solo" group then.
   groupKey?: string

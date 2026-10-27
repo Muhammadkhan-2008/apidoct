@@ -19,6 +19,7 @@ import { Boxes, Search, X, Cpu, Zap, ShieldCheck, Layers, Gauge, MessageSquare }
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { apiFetch } from '@/lib/api'
+import { toast } from '@/lib/toast'
 import {
   buildGroups,
   groupMaxContext,
@@ -73,6 +74,7 @@ export default function FallbackPage() {
   const [filterTools, setFilterTools] = useState(false)
   const [minContext, setMinContext] = useState(0)
   const [chatModel, setChatModel] = useState<Row | null>(null)
+  const [statusFilter, setStatusFilter] = useState<'available' | 'issues' | 'all'>('available')
 
   const { data: entries = [], isLoading } = useQuery<FallbackEntry[]>({
     queryKey: ['fallback'],
@@ -176,7 +178,20 @@ export default function FallbackPage() {
     })
   }
 
-  const searchedGroups = allGroups.filter(g => {
+  const readyGroups = allGroups.filter(g => g.members.some(m => m.isAvailable && m.enabled))
+  const issueGroups = allGroups.filter(g => !g.members.some(m => m.isAvailable && m.enabled))
+
+  const statusFilteredGroups = allGroups.filter(g => {
+    if (statusFilter === 'available') {
+      return g.members.some(m => m.isAvailable && m.enabled)
+    }
+    if (statusFilter === 'issues') {
+      return !g.members.some(m => m.isAvailable && m.enabled)
+    }
+    return true
+  })
+
+  const searchedGroups = statusFilteredGroups.filter(g => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
     return (
@@ -193,7 +208,7 @@ export default function FallbackPage() {
   })
 
   const [visibleLimit, setVisibleLimit] = useState(RENDER_CHUNK)
-  useEffect(() => { setVisibleLimit(RENDER_CHUNK) }, [search, filterVision, filterTools, minContext, strategy])
+  useEffect(() => { setVisibleLimit(RENDER_CHUNK) }, [search, filterVision, filterTools, minContext, strategy, statusFilter])
 
   const observerTarget = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -216,10 +231,15 @@ export default function FallbackPage() {
   filteredGroups.forEach((g, i) => rankByKey.set(g.key, i + 1))
 
   const scanFreeModelsMutation = useMutation({
-    mutationFn: () => apiFetch<{ scanned: number; inserted: number; updated: number }>('/api/fallback/scan-free-models', { method: 'POST' }),
-    onSuccess: () => {
+    mutationFn: () => apiFetch<{ scanned: number; inserted: number; updated: number; activeCount: number }>('/api/fallback/scan-free-models', { method: 'POST' }),
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['fallback'] })
+      queryClient.invalidateQueries({ queryKey: ['fallback', 'routing'] })
+      toast.success(`Synced ${data.scanned} live free models! Active pool: ${data.activeCount} models.`)
     },
+    onError: (err: any) => {
+      toast.error(err?.message || 'Failed to scan free models')
+    }
   })
 
   return (
@@ -283,6 +303,64 @@ export default function FallbackPage() {
       </section>
 
       <PenaltyInspector />
+
+      {/* Route Pool Status Filter Segment */}
+      <div className="glass-card rounded-2xl p-2.5 sm:p-3 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md bg-card/60 backdrop-blur-xl">
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-accent/20 border border-border/40 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setStatusFilter('available')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              statusFilter === 'available'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+            }`}
+          >
+            <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Ready for Routing</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-[10px] font-mono">
+              {readyGroups.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setStatusFilter('issues')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              statusFilter === 'issues'
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+            }`}
+          >
+            <span className="size-2 rounded-full bg-amber-400" />
+            <span>Issues & Inactive</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/30 text-[10px] font-mono">
+              {issueGroups.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setStatusFilter('all')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              statusFilter === 'all'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent/40'
+            }`}
+          >
+            <span>All Models</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-accent text-[10px] font-mono">
+              {allGroups.length}
+            </span>
+          </button>
+        </div>
+
+        {statusFilter === 'available' && (
+          <div className="text-[11px] text-emerald-400/90 font-medium flex items-center gap-1.5 pl-1">
+            <span>✨ Live <code className="font-mono bg-emerald-500/10 px-1 py-0.5 rounded text-emerald-300">model: auto</code> routes only through these verified working models</span>
+          </div>
+        )}
+        {statusFilter === 'issues' && (
+          <div className="text-[11px] text-amber-400/90 font-medium flex items-center gap-1.5 pl-1">
+            <span>⚠️ Models below are excluded from routing due to missing keys, rate limits (429), or upstream provider errors</span>
+          </div>
+        )}
+      </div>
 
       {/* Catalog Search & Filters Bar */}
       <div className="glass-card rounded-2xl p-4 border border-white/10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shadow-md">
@@ -401,6 +479,16 @@ export default function FallbackPage() {
 
                   {/* Capabilities & Token Status Pills */}
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                    {primary?.statusCategory === 'rate_limited' && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 font-mono">
+                        ⏳ 429 Cooldown
+                      </span>
+                    )}
+                    {primary?.statusCategory === 'upstream_error' && (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 max-w-[220px] truncate" title={primary.statusMessage}>
+                        ⚠️ {primary.statusMessage || 'Upstream Error'}
+                      </span>
+                    )}
                     {primary?.keyCount > 0 ? (
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                         🔑 {primary.keyCount} Key{primary.keyCount > 1 ? 's' : ''} Ready
@@ -408,6 +496,11 @@ export default function FallbackPage() {
                     ) : (
                       <span className="px-2 py-0.5 rounded-full bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
                         ⚪ No Key
+                      </span>
+                    )}
+                    {primary?.statusCategory === 'disabled' && (
+                      <span className="px-2 py-0.5 rounded-full bg-zinc-500/20 text-zinc-400 border border-zinc-500/30">
+                        🛑 Disabled
                       </span>
                     )}
                     {primary?.monthlyTokenBudget && (
@@ -492,6 +585,25 @@ export default function FallbackPage() {
             </DndContext>
           </div>
           <div ref={observerTarget} className="h-4" />
+
+          {statusFilter === 'available' && issueGroups.length > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
+              <div className="flex items-center gap-2.5">
+                <span className="text-amber-400 text-lg">⚠️</span>
+                <span className="text-muted-foreground">
+                  <strong className="text-amber-300 font-bold">{issueGroups.length} models</strong> are excluded from routing due to missing API keys, 429 rate limits, or upstream errors.
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStatusFilter('issues')}
+                className="text-xs h-7 border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0 font-bold"
+              >
+                Inspect Excluded Models →
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

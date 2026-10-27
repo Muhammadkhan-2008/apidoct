@@ -16,6 +16,7 @@ import { getActiveProfileId } from '../services/profile-models.js';
 import { qualifiedModelMemberId } from '../lib/endpoint-scope.js';
 import { overriddenFieldNames } from '../services/model-state.js';
 import { scanAndAutoFetchFreeModels } from '../services/free-model-scanner.js';
+import { isOnCooldown } from '../services/ratelimit.js';
 
 export const fallbackRouter = Router();
 
@@ -78,7 +79,7 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
   const db = getDb();
   const activeProfileId = getActiveProfileId(db);
   let rows = activeProfileId == null ? [] : db.prepare(`
-    SELECT pm.model_db_id, pm.priority, pm.enabled,
+    SELECT pm.model_db_id, pm.priority, pm.enabled, m.enabled AS model_enabled,
            m.platform, m.model_id, m.display_name, m.intelligence_rank,
            m.speed_rank, m.size_label, m.rpm_limit, m.rpd_limit,
            m.tpm_limit, m.tpd_limit, m.context_window,
@@ -93,13 +94,13 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
     LEFT JOIN model_overrides mo ON mo.platform = m.platform AND mo.model_id = m.model_id
     LEFT JOIN catalog_model_tombstones ts
       ON ts.kind = 'chat' AND ts.platform = m.platform AND ts.model_id = m.model_id
-    WHERE pm.profile_id = ? AND m.enabled = 1
+    WHERE pm.profile_id = ?
     ORDER BY pm.priority ASC
   `).all(activeProfileId) as any[];
 
   if (rows.length === 0) {
     rows = db.prepare(`
-    SELECT fc.model_db_id, fc.priority, fc.enabled,
+    SELECT fc.model_db_id, fc.priority, fc.enabled, m.enabled AS model_enabled,
            m.platform, m.model_id, m.display_name, m.intelligence_rank,
            m.speed_rank, m.size_label, m.rpm_limit, m.rpd_limit,
            m.tpm_limit, m.tpd_limit, m.context_window,
@@ -114,7 +115,6 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
     LEFT JOIN model_overrides mo ON mo.platform = m.platform AND mo.model_id = m.model_id
     LEFT JOIN catalog_model_tombstones ts
       ON ts.kind = 'chat' AND ts.platform = m.platform AND ts.model_id = m.model_id
-    WHERE m.enabled = 1
     ORDER BY fc.priority ASC
     `).all() as any[];
   }
@@ -146,6 +146,31 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
   res.json(rows.map(r => {
     const penalty = penaltyMap.get(r.model_db_id);
     const group = groupByDbId.get(r.model_db_id);
+    const keyCount = keyCountMap.get(r.platform) ?? 0;
+    const hasTombstone = Boolean(r.tombstone_source);
+    const isCoolingDown = isOnCooldown(r.platform, r.model_id, r.key_id ?? 0);
+    const penaltyVal = penalty?.penalty ?? 0;
+
+    const isModelEnabled = (r.enabled === 1) && (r.model_enabled !== 0);
+    let statusCategory: 'active' | 'rate_limited' | 'no_key' | 'upstream_error' | 'disabled' = 'active';
+    let statusMessage = '🟢 Ready & Verified';
+
+    if (hasTombstone) {
+      statusCategory = 'upstream_error';
+      statusMessage = r.tombstone_reason || '⚠️ Upstream provider error / retired';
+    } else if (keyCount === 0 && r.key_id == null && r.platform !== 'custom') {
+      statusCategory = 'no_key';
+      statusMessage = `🔑 No API key added for ${r.platform}`;
+    } else if (isCoolingDown || penaltyVal >= 5) {
+      statusCategory = 'rate_limited';
+      statusMessage = '⏳ 429: Rate limit cooldown active';
+    } else if (!isModelEnabled) {
+      statusCategory = 'disabled';
+      statusMessage = '⏸️ Disabled in router';
+    }
+
+    const isAvailable = statusCategory === 'active' && isModelEnabled;
+
     return {
       modelDbId: r.model_db_id,
       groupKey: group?.groupKey,
@@ -156,6 +181,10 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
       penalty: penalty?.penalty ?? 0,
       rateLimitHits: penalty?.count ?? 0,
       enabled: r.enabled === 1,
+      isAvailable,
+      statusCategory,
+      statusMessage,
+      isCoolingDown,
       platform: r.platform,
       modelId: r.model_id,
       displayName: r.display_name,
@@ -166,38 +195,21 @@ fallbackRouter.get('/', (_req: Request, res: Response) => {
       rpdLimit: r.rpd_limit,
       tpmLimit: r.tpm_limit,
       tpdLimit: r.tpd_limit,
-      // Max context length (tokens), used by the dashboard catalog filter. Null
-      // for models whose context window the catalog doesn't record.
       contextWindow: r.context_window,
       monthlyTokenBudget: r.monthly_token_budget,
-      // Parsed once here (single source of truth) so the dashboard never re-implements
-      // budget-label parsing; 0 for rate-limited/placeholder labels. See lib/budget.ts.
-      // Scaled by healthy/enabled key count for multi-account pooled capacity.
       monthlyTokenBudgetTokens: parseBudget(r.monthly_token_budget) * Math.max(1, keyCountMap.get(r.platform) ?? 1),
       supportsVision: r.supports_vision === 1,
       supportsTools: r.supports_tools === 1,
       source: r.platform === 'custom' || r.key_id != null ? 'custom' : 'catalog',
       keyId: r.key_id ?? null,
       keyLabel: r.key_label ?? null,
-      // Which relay endpoint a custom row belongs to, and the id that names it
-      // unambiguously (#651). Null for catalog models only — every custom row
-      // bound to an endpoint carries both, including a lone one. Deciding when
-      // they are worth showing is the client's job (see memberProviderLabel /
-      // providerPinId / memberEndpointTitle): it reveals them only where two
-      // endpoints actually serve the same model id.
       endpointScope: r.endpoint_scope || null,
       qualifiedModelId: qualifiedModelMemberId(r.platform, r.model_id, r.endpoint_scope),
       hasOverrides: Boolean(r.has_overrides),
-      // Which fields the local override actually replaces, so the model page
-      // can mark the individual inputs it edits (#551).
       overrideFields: overriddenFieldNames(r.overrides_json),
-      // Why the switch is off: a model auto-disabled because the provider
-      // retired it upstream (410 / end of life, #634) is a different state from
-      // one the user turned off, and the dashboard says so. The reason is the
-      // provider's own (redacted) wording.
-      retiredUpstream: r.tombstone_source === 'upstream_eol',
-      retiredReason: r.tombstone_source === 'upstream_eol' ? (r.tombstone_reason ?? null) : null,
-      keyCount: keyCountMap.get(r.platform) ?? 0,
+      retiredUpstream: Boolean(r.tombstone_source),
+      retiredReason: r.tombstone_reason ?? null,
+      keyCount,
     };
   }));
 });
@@ -225,10 +237,12 @@ fallbackRouter.put('/', (req: Request, res: Response) => {
     ? db.prepare('UPDATE profile_models SET priority = ?, enabled = ? WHERE profile_id = ? AND model_db_id = ?')
     : db.prepare('UPDATE fallback_config SET priority = ?, enabled = ? WHERE model_db_id = ?');
 
+  const updateModel = db.prepare('UPDATE models SET enabled = ? WHERE id = ?');
   const updateAll = db.transaction(() => {
     for (const entry of parsed.data) {
       if (useProfile) update.run(entry.priority, entry.enabled ? 1 : 0, activeProfileId, entry.modelDbId);
       else update.run(entry.priority, entry.enabled ? 1 : 0, entry.modelDbId);
+      updateModel.run(entry.enabled ? 1 : 0, entry.modelDbId);
     }
   });
   updateAll();

@@ -158,6 +158,22 @@ export function RowContent({
           <span className="text-xs text-muted-foreground" title={providerTitle}>
             {providerName ?? providerLabel(row)}
           </span>
+          {row.statusCategory === 'rate_limited' && (
+            <span
+              title={row.statusMessage || 'Upstream rate limit (429)'}
+              className="text-[10px] rounded-full px-2 py-0.5 bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 flex items-center gap-1 font-mono"
+            >
+              ⏳ 429 Cooldown
+            </span>
+          )}
+          {row.statusCategory === 'upstream_error' && (
+            <span
+              title={row.statusMessage || 'Upstream provider error'}
+              className="text-[10px] rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 flex items-center gap-1 max-w-[220px] truncate"
+            >
+              ⚠️ {row.statusMessage || 'Upstream Issue'}
+            </span>
+          )}
           {row.keyCount > 0 ? (
             <span
               title={`${row.keyCount} active API key(s) available`}
@@ -171,6 +187,14 @@ export function RowContent({
               className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/15 text-zinc-400 font-semibold border border-zinc-500/30"
             >
               ⚪ No Key
+            </span>
+          )}
+          {row.statusCategory === 'disabled' && (
+            <span
+              title="Model disabled"
+              className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/20 text-zinc-400 border border-zinc-500/30"
+            >
+              🛑 Disabled
             </span>
           )}
           {row.supportsVision && (
@@ -310,6 +334,22 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
               : <Tooltip text={t('models.servedBy', { providers: group.members.map(m => memberProviderLabel(m, siblings)).join(', ') })}>
                   <span className="text-[10px] rounded-full px-1.5 py-0.5 bg-muted text-muted-foreground">{t('models.providerCount', { count: group.members.length })}</span>
                 </Tooltip>}
+            {best.statusCategory === 'rate_limited' && (
+              <span
+                title={best.statusMessage || 'Upstream rate limit (429)'}
+                className="text-[10px] rounded-full px-2 py-0.5 bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 flex items-center gap-1 font-mono"
+              >
+                ⏳ 429 Cooldown
+              </span>
+            )}
+            {best.statusCategory === 'upstream_error' && (
+              <span
+                title={best.statusMessage || 'Upstream provider error'}
+                className="text-[10px] rounded-full px-2 py-0.5 bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 flex items-center gap-1 max-w-[220px] truncate"
+              >
+                ⚠️ {best.statusMessage || 'Upstream Issue'}
+              </span>
+            )}
             {best.keyCount > 0 ? (
               <span
                 title={`${best.keyCount} active API key(s) ready`}
@@ -323,6 +363,14 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
                 className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/15 text-zinc-400 font-semibold border border-zinc-500/30"
               >
                 ⚪ No Key
+              </span>
+            )}
+            {best.statusCategory === 'disabled' && (
+              <span
+                title="Model disabled"
+                className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/20 text-zinc-400 border border-zinc-500/30"
+              >
+                🛑 Disabled
               </span>
             )}
             {quota && (

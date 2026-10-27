@@ -742,6 +742,31 @@ const GLOBAL_SORT_ALIASES: Record<string, string> = {
   balanced: 'balanced',
 };
 
+function filterUsableChain(chain: ChainRow[], db: Db): ChainRow[] {
+  // Platforms that have at least one enabled healthy/unknown key
+  const activeKeys = db.prepare(
+    "SELECT platform, COUNT(*) as count FROM api_keys WHERE enabled = 1 AND status IN ('healthy', 'unknown') GROUP BY platform"
+  ).all() as { platform: string; count: number }[];
+  const platformKeyMap = new Map(activeKeys.map(k => [k.platform.toLowerCase(), k.count]));
+
+  // Catalog model tombstones (e.g. retired or fatal 403/404)
+  const tombstones = db.prepare("SELECT platform, model_id FROM catalog_model_tombstones WHERE kind = 'chat'").all() as { platform: string; model_id: string }[];
+  const tombstoneSet = new Set(tombstones.map(t => `${t.platform}:${t.model_id}`));
+
+  return chain.filter(row => {
+    // If provider has no keys (and it's not a custom endpoint key), exclude from active routing
+    const keyCount = platformKeyMap.get(row.platform.toLowerCase()) ?? 0;
+    if (keyCount === 0 && row.key_id == null && row.platform !== 'custom') {
+      return false;
+    }
+    // If tombstoned / upstream retired or 403, exclude from active routing
+    if (tombstoneSet.has(`${row.platform}:${row.model_id}`)) {
+      return false;
+    }
+    return true;
+  });
+}
+
 function getActiveChain(db: Db): ChainRow[] {
   const profileId = getActiveProfileId(db);
   if (profileId != null) {
@@ -757,10 +782,10 @@ function getActiveChain(db: Db): ChainRow[] {
       ORDER BY pm.priority ASC
     `).all(profileId) as ChainRow[];
     
-    if (chain.length > 0) return chain;
+    if (chain.length > 0) return filterUsableChain(chain, db);
   }
 
-  return db.prepare(`
+  const defaultChain = db.prepare(`
     SELECT fc.model_db_id, fc.priority, fc.enabled,
            m.platform, m.model_id, m.display_name, m.intelligence_rank,
            m.size_label, m.monthly_token_budget,
@@ -770,6 +795,8 @@ function getActiveChain(db: Db): ChainRow[] {
     JOIN models m ON m.id = fc.model_db_id AND m.enabled = 1
     ORDER BY fc.priority ASC
   `).all() as ChainRow[];
+
+  return filterUsableChain(defaultChain, db);
 }
 
 function getChainByProfileName(db: Db, name: string): ChainRow[] | null {
