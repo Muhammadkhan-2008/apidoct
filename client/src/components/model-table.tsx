@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useI18n } from '@/i18n'
+import { MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ModelTestPill } from '@/components/model-test-pill'
 import { CopyButton } from '@/components/copy-button'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip } from '@/components/tooltip'
@@ -114,6 +117,7 @@ export function ModelTableHead() {
             <span className="underline decoration-dotted underline-offset-2 cursor-help">{t('strategies.scoreColumn')}</span>
           </Tooltip>
         </th>
+        <th className="py-2 pr-3 font-medium text-center">Test & Chat</th>
         <th className="py-2 pr-3 font-medium text-right">{t('models.columnOn')}</th>
       </tr>
     </thead>
@@ -129,19 +133,16 @@ export function RowContent({
   onToggle,
   providerName,
   providerTitle,
+  onChat,
 }: {
   row: Row
   rank: number
   draggable: boolean
   dragHandle?: ReactNode
   onToggle: (modelDbId: number, enabled: boolean) => void
-  // Overrides the provider label — the model page passes an endpoint-qualified
-  // one when two custom endpoints serve this same model id (#651).
   providerName?: string
-  // Hover text for that label, supplied ONLY when the caller actually had to
-  // disambiguate. Never derived from row.endpointScope here: every custom row
-  // carries a scope, so doing so would leak the base URL of a lone endpoint.
   providerTitle?: string
+  onChat?: (row: Row) => void
 }) {
   const { t } = useI18n()
   const guard = (row.headroom ?? 1) * (row.rateLimit ?? 1)
@@ -157,6 +158,21 @@ export function RowContent({
           <span className="text-xs text-muted-foreground" title={providerTitle}>
             {providerName ?? providerLabel(row)}
           </span>
+          {row.keyCount > 0 ? (
+            <span
+              title={`${row.keyCount} active API key(s) available`}
+              className="text-[10px] rounded-full px-1.5 py-0.5 bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30 flex items-center gap-1"
+            >
+              🔑 {row.keyCount} Key{row.keyCount > 1 ? 's' : ''}
+            </span>
+          ) : (
+            <span
+              title="No active API key configured for this provider"
+              className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/15 text-zinc-400 font-semibold border border-zinc-500/30"
+            >
+              ⚪ No Key
+            </span>
+          )}
           {row.supportsVision && (
             <span
               title={t('models.visionTitle')}
@@ -222,6 +238,21 @@ export function RowContent({
       <td className="py-2 pr-3 align-middle text-right font-mono text-xs font-medium tabular-nums">
         {row.score !== undefined ? row.score.toFixed(3) : '–'}
       </td>
+      <td className="py-2 pr-3 align-middle text-center" onClick={e => e.stopPropagation()}>
+        <div className="inline-flex items-center gap-1.5 justify-center">
+          <ModelTestPill model={row} compact />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onChat?.(row)}
+            className="h-6 px-2 text-[10px] font-semibold border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
+            title="Open quick chat popup"
+          >
+            <MessageSquare className="size-3 mr-1 text-cyan-400" />
+            Chat
+          </Button>
+        </div>
+      </td>
       <td className="py-2 pr-3 align-middle text-right">
         <Switch checked={row.enabled} onCheckedChange={(c) => onToggle(row.modelDbId, c)} />
       </td>
@@ -242,27 +273,19 @@ export const dragDots = (
 // The collapsed header row for a logical-model group: name, provider count,
 // union vision/tools badges, the best member's axis bars + score, and a single
 // switch that enables/disables every provider in the group.
-export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRows }: {
+export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRows, onChat }: {
   group: ModelGroupRow
   rank: number
   dragHandle?: ReactNode
   onToggleGroup: (memberIds: number[], enabled: boolean) => void
-  // Every configured row, for endpoint disambiguation. Two relays serving one
-  // model id land in different display groups the moment one copy is renamed,
-  // so the group's own members are not a complete sibling set (#651).
   allRows?: readonly Row[]
+  onChat?: (model: Row) => void
 }) {
   const { t } = useI18n()
   const anyEnabled = group.members.some(m => m.enabled)
   const solo = group.members.length === 1
   const best = group.members.reduce((b, m) => ((m.score ?? -1) > (b.score ?? -1) ? m : b), group.members[0])
   const guard = (best.headroom ?? 1) * (best.rateLimit ?? 1)
-  // Honest group display (#580): reliability/speed ranges come only from
-  // members that were actually measured; when none were, show "no data" rather
-  // than the shared exploration priors. Intelligence is catalog metadata, so
-  // its range spans every member. The score cell keeps the best member's score
-  // (that is what routing would pick) but labels it "best of N" with the
-  // per-provider breakdown in a tooltip.
   const siblings = allRows ?? group.members
   const measured = group.members.filter(m => (m.totalRequests ?? 0) > 0)
   const scoreBreakdown = group.members
@@ -272,10 +295,7 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
   const tools = group.members.some(m => m.supportsTools)
   const quota = groupQuotaBadge(group.members, t)
   const maxCtx = groupMaxContext(group.members)
-  // The model name links to its own page, which lists every provider that serves
-  // it (replaces the old inline expansion).
   const detailId = encodeURIComponent(group.members[0].canonicalId ?? group.members[0].modelId)
-  // The unified model string to paste into .env / API payloads (#343 quick-copy).
   const copyId = group.members[0].canonicalId ?? group.members[0].modelId
   return (
     <>
@@ -290,6 +310,21 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
               : <Tooltip text={t('models.servedBy', { providers: group.members.map(m => memberProviderLabel(m, siblings)).join(', ') })}>
                   <span className="text-[10px] rounded-full px-1.5 py-0.5 bg-muted text-muted-foreground">{t('models.providerCount', { count: group.members.length })}</span>
                 </Tooltip>}
+            {best.keyCount > 0 ? (
+              <span
+                title={`${best.keyCount} active API key(s) ready`}
+                className="text-[10px] rounded-full px-1.5 py-0.5 bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30 flex items-center gap-1"
+              >
+                🔑 {best.keyCount} Key{best.keyCount > 1 ? 's' : ''}
+              </span>
+            ) : (
+              <span
+                title="No active API key configured for this provider"
+                className="text-[10px] rounded-full px-1.5 py-0.5 bg-zinc-500/15 text-zinc-400 font-semibold border border-zinc-500/30"
+              >
+                ⚪ No Key
+              </span>
+            )}
             {quota && (
               <span title={quota.title} className="text-[10px] rounded-full px-1.5 py-0.5 bg-muted text-muted-foreground tabular-nums">
                 {quota.text}
@@ -307,8 +342,6 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
               <span title={t('models.toolsTitle')} className="text-[10px] rounded-full px-1.5 py-0.5 bg-violet-600/15 text-violet-700 dark:bg-violet-400/15 dark:text-violet-400">{t('models.tools')}</span>
             )}
           </Link>
-          {/* Quick-copy the unified model id (#343). Stop propagation so it neither
-              follows the model link nor triggers the row's navigate-on-click. */}
           <span onClick={e => e.stopPropagation()} className="shrink-0">
             <CopyButton
               text={copyId}
@@ -334,6 +367,21 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
           </Tooltip>
         )}
       </td>
+      <td className="py-2 pr-3 align-middle text-center" onClick={e => e.stopPropagation()}>
+        <div className="inline-flex items-center gap-1.5 justify-center">
+          <ModelTestPill model={best} compact />
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onChat?.(best)}
+            className="h-6 px-2 text-[10px] font-semibold border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
+            title="Open quick chat popup with this model"
+          >
+            <MessageSquare className="size-3 mr-1 text-cyan-400" />
+            Chat
+          </Button>
+        </div>
+      </td>
       <td className="py-2 pr-3 align-middle text-right" onClick={e => e.stopPropagation()}>
         <Switch checked={anyEnabled} onCheckedChange={(c) => onToggleGroup(group.members.map(m => m.modelDbId), c)} />
       </td>
@@ -341,11 +389,12 @@ export function GroupHeaderCells({ group, rank, dragHandle, onToggleGroup, allRo
   )
 }
 
-export function SortableGroupRow({ group, rank, onToggleGroup, allRows }: {
+export function SortableGroupRow({ group, rank, onToggleGroup, allRows, onChat }: {
   group: ModelGroupRow
   rank: number
   onToggleGroup: (memberIds: number[], enabled: boolean) => void
   allRows?: readonly Row[]
+  onChat?: (model: Row) => void
 }) {
   const { t } = useI18n()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: `grp:${group.key}` })
@@ -370,7 +419,7 @@ export function SortableGroupRow({ group, rank, onToggleGroup, allRows }: {
       onClick={() => navigate(`/models/chat/${detailId}`)}
       className={`group/row border-b last:border-0 bg-card cursor-pointer transition-colors hover:[&>td]:bg-muted/50 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg ${isDragging ? 'opacity-50' : ''} ${anyEnabled ? '' : 'opacity-50'}`}
     >
-      <GroupHeaderCells group={group} rank={rank} dragHandle={handle} onToggleGroup={onToggleGroup} allRows={allRows} />
+      <GroupHeaderCells group={group} rank={rank} dragHandle={handle} onToggleGroup={onToggleGroup} allRows={allRows} onChat={onChat} />
     </tr>
   )
 }

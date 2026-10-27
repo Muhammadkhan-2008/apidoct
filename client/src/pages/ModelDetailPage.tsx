@@ -14,6 +14,7 @@ import { Tooltip } from '@/components/tooltip'
 import { PageHeader } from '@/components/page-header'
 import { ModelsTabs } from '@/components/models-tabs'
 import { ModelTableHead, RowContent } from '@/components/model-table'
+import { QuickModelChatDialog } from '@/components/quick-model-chat-dialog'
 import {
   groupQuotaBadge,
   isMemberSplit,
@@ -57,6 +58,7 @@ export default function ModelDetailPage() {
   const { id } = useParams<{ id: string }>()
   const canonicalId = id ? decodeURIComponent(id) : ''
   const queryClient = useQueryClient()
+  const [chatModel, setChatModel] = useState<Row | null>(null)
 
   const { data: entries = [], isLoading } = useQuery<FallbackEntry[]>({
     queryKey: ['fallback'],
@@ -219,7 +221,7 @@ export default function ModelDetailPage() {
                 <tbody>
                   {members.map((m, i) => (
                     <tr key={m.modelDbId} className={`border-b last:border-0 ${m.enabled ? '' : 'opacity-50'}`}>
-                      <RowContent row={m} rank={i + 1} draggable={false} onToggle={handleToggle} providerName={memberProviderLabel(m, siblings)} providerTitle={memberEndpointTitle(m, siblings)} />
+                      <RowContent row={m} rank={i + 1} draggable={false} onToggle={handleToggle} providerName={memberProviderLabel(m, siblings)} providerTitle={memberEndpointTitle(m, siblings)} onChat={setChatModel} />
                     </tr>
                   ))}
                 </tbody>
@@ -278,6 +280,12 @@ export default function ModelDetailPage() {
           </>
         )}
       </div>
+
+      <QuickModelChatDialog
+        model={chatModel}
+        open={Boolean(chatModel)}
+        onOpenChange={(open) => !open && setChatModel(null)}
+      />
     </div>
   )
 }

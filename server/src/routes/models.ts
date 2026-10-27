@@ -2,7 +2,9 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { getDb } from '../db/index.js';
-import { hasProvider } from '../providers/index.js';
+import { hasProvider, resolveProvider } from '../providers/index.js';
+import { decrypt } from '../lib/crypto.js';
+import type { Platform } from '@apidoct/shared/types.js';
 import { deleteUnusedCustomEndpointKey } from '../lib/custom-provider-cleanup.js';
 import {
   isCatalogManagedModel,
@@ -30,6 +32,141 @@ modelsRouter.post('/scan', async (_req: Request, res: Response) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err?.message ?? String(err) });
+  }
+});
+
+modelsRouter.post('/test', async (req: Request, res: Response) => {
+  try {
+    const { modelDbId, platform, modelId, prompt } = req.body;
+    const db = getDb();
+
+    let targetPlatform = platform as string | undefined;
+    let targetModelId = modelId as string | undefined;
+    let displayName = (modelId || 'Unknown Model') as string;
+    let endpointScope: string | null = null;
+    let budget = '—';
+
+    if (modelDbId) {
+      const modelRow = db.prepare('SELECT * FROM models WHERE id = ?').get(modelDbId) as any;
+      if (modelRow) {
+        targetPlatform = modelRow.platform;
+        targetModelId = modelRow.model_id;
+        displayName = modelRow.display_name;
+        endpointScope = modelRow.endpoint_scope;
+        budget = modelRow.monthly_token_budget;
+      }
+    }
+
+    if (!targetPlatform || !targetModelId) {
+      res.status(400).json({ success: false, error: 'Platform and modelId are required' });
+      return;
+    }
+
+    // Find enabled key for this platform
+    const keyRows = db.prepare(
+      "SELECT id, platform, label, encrypted_key, iv, auth_tag, status FROM api_keys WHERE platform = ? AND enabled = 1 ORDER BY (status = 'healthy') DESC, id ASC"
+    ).all(targetPlatform) as any[];
+
+    if (keyRows.length === 0) {
+      res.json({
+        success: false,
+        status: 401,
+        latencyMs: 0,
+        error: `No active API key configured for provider "${targetPlatform}". Please add a key in the Keys page.`,
+        keyAvailable: false,
+        keyCount: 0,
+        platform: targetPlatform,
+        modelId: targetModelId,
+        displayName,
+      });
+      return;
+    }
+
+    const keyRow = keyRows[0];
+    let apiKey: string;
+    try {
+      apiKey = decrypt(keyRow.encrypted_key, keyRow.iv, keyRow.auth_tag);
+    } catch {
+      res.json({
+        success: false,
+        status: 500,
+        latencyMs: 0,
+        error: `Failed to decrypt key "${keyRow.label}". Check ENCRYPTION_KEY.`,
+        keyAvailable: false,
+        keyCount: keyRows.length,
+        platform: targetPlatform,
+        modelId: targetModelId,
+        displayName,
+      });
+      return;
+    }
+
+    const provider = resolveProvider(targetPlatform as Platform, endpointScope);
+    if (!provider) {
+      res.json({
+        success: false,
+        status: 400,
+        latencyMs: 0,
+        error: `No provider adapter registered for "${targetPlatform}".`,
+        keyAvailable: true,
+        keyCount: keyRows.length,
+        platform: targetPlatform,
+        modelId: targetModelId,
+        displayName,
+      });
+      return;
+    }
+
+    const testPrompt = prompt || 'Say "ApiDoct OK" in 3 words.';
+    const startTime = Date.now();
+
+    try {
+      const completion = await provider.chatCompletion(
+        apiKey,
+        [{ role: 'user', content: testPrompt }],
+        targetModelId,
+        { max_tokens: 35, temperature: 0.1 }
+      );
+      const latencyMs = Date.now() - startTime;
+      const rawContent = completion.choices?.[0]?.message?.content || '(No response)';
+      const contentStr = typeof rawContent === 'string' ? rawContent.trim() : JSON.stringify(rawContent);
+
+      res.json({
+        success: true,
+        status: 200,
+        latencyMs,
+        content: contentStr,
+        keyLabel: keyRow.label,
+        keyCount: keyRows.length,
+        keyAvailable: true,
+        platform: targetPlatform,
+        modelId: targetModelId,
+        displayName,
+        budget,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      const latencyMs = Date.now() - startTime;
+      const errorMessage = err?.message || String(err);
+      const isRateLimit = err?.status === 429 || /rate|quota|too many/i.test(errorMessage);
+      const isAuthError = err?.status === 401 || err?.status === 403 || /unauthorized|auth|forbidden|billing/i.test(errorMessage);
+
+      res.json({
+        success: false,
+        status: err?.status || (isRateLimit ? 429 : isAuthError ? 403 : 500),
+        latencyMs,
+        error: errorMessage,
+        keyLabel: keyRow.label,
+        keyCount: keyRows.length,
+        keyAvailable: true,
+        platform: targetPlatform,
+        modelId: targetModelId,
+        displayName,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (outerErr: any) {
+    res.status(500).json({ success: false, error: outerErr?.message || String(outerErr) });
   }
 });
 

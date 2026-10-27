@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { Boxes, Search, X, Cpu, Zap, ShieldCheck, Layers, Gauge } from 'lucide-react'
+import { Boxes, Search, X, Cpu, Zap, ShieldCheck, Layers, Gauge, MessageSquare } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '@/i18n'
 import { apiFetch } from '@/lib/api'
@@ -42,6 +42,8 @@ import { FloatingBar } from '@/components/floating-bar'
 import { ModelsTabs } from '@/components/models-tabs'
 import { Tooltip } from '@/components/tooltip'
 import { PenaltyInspector } from '@/components/penalty-inspector'
+import { ModelTestPill } from '@/components/model-test-pill'
+import { QuickModelChatDialog } from '@/components/quick-model-chat-dialog'
 
 const STRATEGIES: { key: RoutingStrategy; tKey: string; label: string; icon: any }[] = [
   { key: 'priority', tKey: 'manual', label: 'Priority Chain', icon: Zap },
@@ -70,6 +72,7 @@ export default function FallbackPage() {
   const [filterVision, setFilterVision] = useState(false)
   const [filterTools, setFilterTools] = useState(false)
   const [minContext, setMinContext] = useState(0)
+  const [chatModel, setChatModel] = useState<Row | null>(null)
 
   const { data: entries = [], isLoading } = useQuery<FallbackEntry[]>({
     queryKey: ['fallback'],
@@ -396,8 +399,22 @@ export default function FallbackPage() {
                     />
                   </div>
 
-                  {/* Capabilities pills */}
-                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold">
+                  {/* Capabilities & Token Status Pills */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                    {primary?.keyCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        🔑 {primary.keyCount} Key{primary.keyCount > 1 ? 's' : ''} Ready
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
+                        ⚪ No Key
+                      </span>
+                    )}
+                    {primary?.monthlyTokenBudget && (
+                      <span className="px-2 py-0.5 rounded-full bg-accent/60 text-muted-foreground border border-border/40 font-mono">
+                        📊 {primary.monthlyTokenBudget}
+                      </span>
+                    )}
                     {supportsVision && <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">👁️ Vision</span>}
                     {supportsTools && <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">🛠️ Tools</span>}
                     {isReasoning && <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">🧠 Reasoning</span>}
@@ -408,17 +425,28 @@ export default function FallbackPage() {
                     )}
                   </div>
 
-                  {/* Manual priority reorder on mobile touch */}
-                  {isManual && (
-                    <div className="flex items-center justify-between pt-2 border-t border-border/30 text-xs">
-                      <span className="text-[11px] text-muted-foreground font-medium">Reorder Priority:</span>
+                  {/* Actions: Live Test Ping & Quick Chat & Reorder */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-border/20 text-xs">
+                    <div className="flex items-center gap-2">
+                      <ModelTestPill model={primary} />
+                      <Button
+                        size="sm"
+                        onClick={() => setChatModel(primary)}
+                        className="h-7 px-3 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 shadow-sm"
+                      >
+                        <MessageSquare className="size-3 mr-0.5" />
+                        Chat
+                      </Button>
+                    </div>
+
+                    {isManual && (
                       <div className="flex gap-1.5">
                         <Button
                           size="sm"
                           variant="outline"
                           disabled={idx === 0}
                           onClick={() => moveGroup(idx, idx - 1)}
-                          className="h-7 px-2.5 text-xs rounded-lg border-border/40"
+                          className="h-7 px-2 text-xs rounded-lg border-border/40"
                         >
                           ▲ Up
                         </Button>
@@ -427,13 +455,13 @@ export default function FallbackPage() {
                           variant="outline"
                           disabled={idx === filteredGroups.length - 1}
                           onClick={() => moveGroup(idx, idx + 1)}
-                          className="h-7 px-2.5 text-xs rounded-lg border-border/40"
+                          className="h-7 px-2 text-xs rounded-lg border-border/40"
                         >
                           ▼ Down
                         </Button>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -454,6 +482,7 @@ export default function FallbackPage() {
                           rank={rankByKey.get(group.key) ?? 0}
                           onToggleGroup={handleGroupToggle}
                           allRows={rows}
+                          onChat={setChatModel}
                         />
                       ))}
                     </tbody>
@@ -473,6 +502,12 @@ export default function FallbackPage() {
           {saveMutation.isPending ? t('common.saving') : t('common.saveChanges')}
         </Button>
       </FloatingBar>
+
+      <QuickModelChatDialog
+        model={chatModel}
+        open={Boolean(chatModel)}
+        onOpenChange={(open) => !open && setChatModel(null)}
+      />
     </div>
   )
 }
