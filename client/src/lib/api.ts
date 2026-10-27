@@ -1,5 +1,26 @@
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+const DEFAULT_BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const TOKEN_KEY = 'apidoct_dashboard_token';
+const SERVER_URL_KEY = 'apidoct_server_url';
+
+export function getServerUrl(): string {
+  try {
+    const custom = localStorage.getItem(SERVER_URL_KEY);
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/$/, '');
+    }
+  } catch {}
+  return DEFAULT_BASE;
+}
+
+export function setServerUrl(url: string | null): void {
+  try {
+    if (url && url.trim()) {
+      localStorage.setItem(SERVER_URL_KEY, url.trim().replace(/\/$/, ''));
+    } else {
+      localStorage.removeItem(SERVER_URL_KEY);
+    }
+  } catch {}
+}
 
 // Dashboard session token (#35). Stored in localStorage; sent as a Bearer on
 // every /api request and cleared on a 401.
@@ -32,7 +53,9 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  const res = await fetch(`${BASE}${path}`, {
+  const baseUrl = getServerUrl();
+  const requestUrl = path.startsWith('http://') || path.startsWith('https://') ? path : `${baseUrl}${path}`;
+  const res = await fetch(requestUrl, {
     // `...options` first so an explicit method/body/signal applies, but headers
     // are merged last — otherwise an options.headers would clobber the
     // Content-Type and Authorization we set here.

@@ -14,6 +14,8 @@ import {
 } from '../services/auth.js';
 import { setupCodeMatches, clearSetupCode } from '../lib/setup-code.js';
 import { generateResetCode, resetCodeMatches, clearResetCode } from '../lib/reset-code.js';
+import { getDb } from '../db/index.js';
+import { backupVaultForUser, restoreVaultForUser, hasVaultBackup } from '../services/cloud-vault.js';
 
 export const authRouter = Router();
 
@@ -138,6 +140,25 @@ authRouter.post('/login', (req: Request, res: Response) => {
 
   clearFailures(email);
   const token = createSession(user.userId);
+
+  // Auto-sync Cloud Vault for seamless multi-device experience:
+  try {
+    const db = getDb();
+    const countRow = db.prepare('SELECT COUNT(*) as c FROM api_keys WHERE enabled = 1').get() as any;
+    if (!countRow || countRow.c === 0) {
+      // Local instance has 0 keys (e.g. fresh installation on PC or new device) -> Auto restore from Cloud Vault!
+      if (hasVaultBackup(user.email).exists) {
+        restoreVaultForUser(user.email);
+        console.log(`[Auth/Login] Auto-restored Cloud Vault keys for ${user.email} on new device.`);
+      }
+    } else {
+      // Local instance has keys -> Auto backup to Cloud Vault
+      backupVaultForUser(user.email);
+    }
+  } catch (e) {
+    console.warn('[Auth/Login] Cloud Vault auto-sync non-critical error:', e);
+  }
+
   res.json({ token, email: user.email });
 });
 

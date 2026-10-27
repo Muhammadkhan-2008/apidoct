@@ -22,6 +22,7 @@ import { apiFetch } from '@/lib/api'
 import {
   buildGroups,
   groupMaxContext,
+  formatContext,
   type FallbackEntry,
   type RoutingData,
   type RoutingStrategy,
@@ -30,6 +31,7 @@ import {
   type TokenUsageData,
 } from '@/lib/routing'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { CustomWeightsPopover } from '@/components/custom-weights-popover'
 import { EmptyState } from '@/components/empty-state'
 import { GettingStarted } from '@/components/getting-started'
@@ -152,6 +154,18 @@ export default function FallbackPage() {
     saveMutation.mutate(next)
   }
 
+  function moveGroup(fromIndex: number, toIndex: number) {
+    if (toIndex < 0 || toIndex >= filteredGroups.length) return
+    const fromGrp = filteredGroups[fromIndex]
+    const toGrp = filteredGroups[toIndex]
+    if (!fromGrp || !toGrp || !fromGrp.members[0] || !toGrp.members[0]) return
+    const oldIndex = currentEntries.findIndex(e => e.modelDbId === fromGrp.members[0].modelDbId)
+    const newIndex = currentEntries.findIndex(e => e.modelDbId === toGrp.members[0].modelDbId)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(currentEntries, oldIndex, newIndex)
+    setLocalEntries(reordered)
+  }
+
   function handleSave() {
     if (!localEntries) return
     saveMutation.mutate(localEntries, {
@@ -214,7 +228,7 @@ export default function FallbackPage() {
       <GettingStarted />
 
       {/* ApiDoct Smart Routing Matrix Control Card */}
-      <section className="glass-card rounded-3xl border border-white/10 p-6 shadow-xl relative overflow-hidden bg-card/60 backdrop-blur-xl">
+      <section className="glass-card rounded-3xl border border-white/10 p-4 sm:p-6 shadow-xl relative overflow-hidden bg-card/60 backdrop-blur-xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-border/40">
           <div>
             <h2 className="text-lg font-extrabold tracking-tight text-foreground flex items-center gap-2">
@@ -234,7 +248,7 @@ export default function FallbackPage() {
           </Button>
         </div>
 
-        <div className="inline-flex flex-wrap items-center gap-2 rounded-2xl border border-border/40 p-1.5 bg-accent/20">
+        <div className="flex items-center gap-2 rounded-2xl border border-border/40 p-1.5 bg-accent/20 overflow-x-auto no-scrollbar max-w-full whitespace-nowrap">
           {STRATEGIES.map(s => {
             const Icon = s.icon
             const isActive = s.key === strategy
@@ -342,27 +356,112 @@ export default function FallbackPage() {
           }
         />
       ) : (
-        <div className="glass-card rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupedDragEnd}>
-            <SortableContext items={visibleGroups.map(g => `grp:${g.key}`)} strategy={verticalListSortingStrategy}>
-              <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left text-xs border-collapse">
-                  <ModelTableHead />
-                  <tbody>
-                    {visibleGroups.map((group) => (
-                      <SortableGroupRow
-                        key={group.key}
-                        group={group}
-                        rank={rankByKey.get(group.key) ?? 0}
-                        onToggleGroup={handleGroupToggle}
-                        allRows={rows}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </SortableContext>
-          </DndContext>
+        <div className="space-y-4">
+          {/* Mobile View: Clean Touch Cards */}
+          <div className="md:hidden space-y-3">
+            {visibleGroups.map((group, idx) => {
+              const rank = rankByKey.get(group.key) ?? idx + 1
+              const isEnabled = group.members.some(m => m.enabled)
+              const maxCtx = groupMaxContext(group.members)
+              const primary = group.members[0]
+              const supportsVision = group.members.some(m => m.supportsVision)
+              const supportsTools = group.members.some(m => m.supportsTools)
+              const isReasoning = group.members.some(m => /deepseek-r1|reasoner|thinking|qwq|o1|o3/i.test(m.modelId) || /reason/i.test(m.displayName))
+
+              return (
+                <div key={group.key} className="p-4 rounded-2xl bg-card/75 border border-white/10 shadow-lg space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <span className="font-mono text-xs font-black px-2 py-1 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 shrink-0">
+                        #{rank}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-sm text-foreground truncate">{group.label}</h4>
+                        <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5">
+                          <span className="font-semibold text-cyan-400">{primary?.platform || 'provider'}</span>
+                          {group.members.length > 1 && (
+                            <span className="px-1.5 py-0.2 rounded bg-accent text-[10px] text-muted-foreground">
+                              +{group.members.length - 1} more
+                            </span>
+                          )}
+                          {maxCtx > 0 && <span>• {formatContext(maxCtx)} ctx</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={isEnabled}
+                      onCheckedChange={(checked) =>
+                        handleGroupToggle(group.members.map(m => m.modelDbId), checked)
+                      }
+                    />
+                  </div>
+
+                  {/* Capabilities pills */}
+                  <div className="flex flex-wrap items-center gap-1 text-[10px] font-bold">
+                    {supportsVision && <span className="px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">👁️ Vision</span>}
+                    {supportsTools && <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">🛠️ Tools</span>}
+                    {isReasoning && <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">🧠 Reasoning</span>}
+                    {primary?.speed !== undefined && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
+                        ⚡ {Math.round(primary.speed * 100)}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Manual priority reorder on mobile touch */}
+                  {isManual && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border/30 text-xs">
+                      <span className="text-[11px] text-muted-foreground font-medium">Reorder Priority:</span>
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={idx === 0}
+                          onClick={() => moveGroup(idx, idx - 1)}
+                          className="h-7 px-2.5 text-xs rounded-lg border-border/40"
+                        >
+                          ▲ Up
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={idx === filteredGroups.length - 1}
+                          onClick={() => moveGroup(idx, idx + 1)}
+                          className="h-7 px-2.5 text-xs rounded-lg border-border/40"
+                        >
+                          ▼ Down
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block glass-card rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupedDragEnd}>
+              <SortableContext items={visibleGroups.map(g => `grp:${g.key}`)} strategy={verticalListSortingStrategy}>
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <ModelTableHead />
+                    <tbody>
+                      {visibleGroups.map((group) => (
+                        <SortableGroupRow
+                          key={group.key}
+                          group={group}
+                          rank={rankByKey.get(group.key) ?? 0}
+                          onToggleGroup={handleGroupToggle}
+                          allRows={rows}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
           <div ref={observerTarget} className="h-4" />
         </div>
       )}

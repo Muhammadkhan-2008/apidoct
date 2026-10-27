@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { KeyRound, LogOut, Menu, MoreHorizontal, Search, Settings, Sparkles, Activity, Cpu, Layers, MessageSquare, Dna, Image as ImageIcon, Mic, Network, Lock, BarChart3, Award, BookOpen } from 'lucide-react'
+import { KeyRound, LogOut, Menu, MoreHorizontal, Search, Settings, Sparkles, Activity, Cpu, Layers, MessageSquare, Dna, Image as ImageIcon, Mic, Network, Lock, BarChart3, Award, BookOpen, Laptop } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
@@ -37,6 +38,8 @@ import AnalyticsPage from '@/pages/AnalyticsPage'
 import PremiumPage from '@/pages/PremiumPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import AgentsPage from '@/pages/AgentsPage'
+import { RemoteConnectDialog } from '@/components/remote-connect-dialog'
+import { MobileBottomNav } from '@/components/mobile-nav'
 
 const queryClient = new QueryClient({
   mutationCache: new MutationCache({
@@ -135,7 +138,7 @@ function AccountMenuItems({
   )
 }
 
-function SidebarNav() {
+function SidebarNav({ onOpenRemote }: { onOpenRemote?: () => void }) {
   const { t } = useI18n()
   const location = useLocation()
   const navigate = useNavigate()
@@ -266,6 +269,17 @@ function SidebarNav() {
                 <span>Provider Keys</span>
               </NavLink>
 
+              {onOpenRemote && (
+                <button
+                  type="button"
+                  onClick={onOpenRemote}
+                  className="w-full text-left group relative flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all duration-300 text-muted-foreground hover:text-cyan-300 hover:bg-gradient-to-r hover:from-cyan-500/15 hover:to-transparent border border-transparent"
+                >
+                  <Laptop className="size-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                  <span>Remote PC Connect</span>
+                </button>
+              )}
+
               <NavLink
                 to="/agents"
                 className={({ isActive }) =>
@@ -359,7 +373,7 @@ function SidebarNav() {
   )
 }
 
-function TopHeader({ className }: { className?: string }) {
+function TopHeader({ className, onOpenRemote }: { className?: string; onOpenRemote?: () => void }) {
   const { t } = useI18n()
   const navigate = useNavigate()
 
@@ -383,6 +397,19 @@ function TopHeader({ className }: { className?: string }) {
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {onOpenRemote && (
+          <Button
+            type="button"
+            onClick={onOpenRemote}
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 text-xs font-bold shadow-md flex items-center gap-1.5 h-8 px-2.5 sm:px-3.5"
+          >
+            <Laptop className="size-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Remote PC</span>
+          </Button>
+        )}
+
         <span className="hidden md:inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full text-xs font-extrabold bg-gradient-to-r from-emerald-500/20 to-teal-500/10 text-emerald-300 border border-emerald-500/30 shadow-md">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -422,6 +449,11 @@ function TopHeader({ className }: { className?: string }) {
                 <DropdownMenuItem onClick={() => navigate('/keys')} className="font-bold text-indigo-400">
                   <KeyRound className="size-4 mr-2" /> Provider Keys
                 </DropdownMenuItem>
+                {onOpenRemote && (
+                  <DropdownMenuItem onClick={onOpenRemote} className="font-bold text-cyan-400">
+                    <Laptop className="size-4 mr-2" /> Remote PC Connect
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => navigate('/analytics')} className="font-bold text-emerald-400">
                   <BarChart3 className="size-4 mr-2" /> Telemetry Analytics
                 </DropdownMenuItem>
@@ -445,15 +477,20 @@ function PageBoundary({ children }: { children: ReactNode }) {
 function AppLayout() {
   const location = useLocation()
   const isPlayground = location.pathname.startsWith('/playground')
+  const [remoteOpen, setRemoteOpen] = useState(false)
 
   return (
     <div className={`min-h-screen flex ${isDesktopApp ? 'desktop-backdrop' : 'bg-background'} overflow-x-hidden w-full max-w-full`}>
-      <SidebarNav />
+      <SidebarNav onOpenRemote={() => setRemoteOpen(true)} />
       <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
-        <TopHeader className={isPlayground ? 'hidden md:flex' : ''} />
+        <TopHeader
+          className={isPlayground ? 'hidden md:flex' : ''}
+          onOpenRemote={() => setRemoteOpen(true)}
+        />
         <main
           className={cn(
             'flex-1 p-2 sm:p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0',
+            !isPlayground && 'pb-20 md:pb-8',
             isPlayground && 'p-0 sm:p-2 md:p-6 max-w-none h-dvh md:h-[calc(100vh-5rem)] overflow-hidden flex flex-col',
           )}
         >
@@ -484,6 +521,8 @@ function AppLayout() {
           </PageBoundary>
         </main>
       </div>
+      {!isPlayground && <MobileBottomNav onOpenRemote={() => setRemoteOpen(true)} />}
+      <RemoteConnectDialog open={remoteOpen} onOpenChange={setRemoteOpen} />
       <Toaster />
       <CommandPalette />
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiFetch, setToken, UNAUTHORIZED_EVENT, type ApiError } from '@/lib/api'
+import { apiFetch, setToken, getServerUrl, setServerUrl, UNAUTHORIZED_EVENT, type ApiError } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
@@ -40,6 +40,8 @@ function AuthForm({ mode, onAuthed }: { mode: 'setup' | 'login'; onAuthed: () =>
   const [busy, setBusy] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [showForgot, setShowForgot] = useState(false)
+  const [showRemoteConfig, setShowRemoteConfig] = useState(false)
+  const [targetServer, setTargetServer] = useState(() => getServerUrl())
 
   const isSetup = mode === 'setup'
 
@@ -205,6 +207,44 @@ function AuthForm({ mode, onAuthed }: { mode: 'setup' | 'login'; onAuthed: () =>
             {t('auth.forgotPassword')}
           </button>
         )}
+
+        {/* Remote Server / PC Connect Box */}
+        <div className="mt-4 pt-3 border-t border-border/40 text-center">
+          <button
+            type="button"
+            onClick={() => setShowRemoteConfig(v => !v)}
+            className="text-[11px] text-cyan-400 font-bold hover:underline flex items-center justify-center gap-1.5 mx-auto"
+          >
+            <span>📱 Using PC? Connect to Mobile Server</span>
+          </button>
+          {showRemoteConfig && (
+            <div className="mt-2.5 p-3 rounded-2xl bg-card/60 border border-cyan-500/30 text-left space-y-2">
+              <label className="text-[10px] font-bold text-muted-foreground uppercase">Mobile Server URL:</label>
+              <div className="flex gap-1.5">
+                <Input
+                  value={targetServer}
+                  onChange={(e) => setTargetServer(e.target.value)}
+                  placeholder="http://192.168.52.202:3001"
+                  className="text-xs font-mono h-8"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setServerUrl(targetServer);
+                    toast.success('Switched to mobile server target!');
+                    window.location.reload();
+                  }}
+                  className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs h-8 px-2.5 rounded-lg"
+                >
+                  Connect
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-normal">
+                If ApiDoct is running on your phone, enter your phone's IP address (e.g. <span className="text-cyan-300 font-mono">http://192.168.52.202:3001</span>) to access the exact same dashboard on PC!
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </Centered>
   )
