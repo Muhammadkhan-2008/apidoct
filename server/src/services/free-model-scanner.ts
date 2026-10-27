@@ -57,17 +57,18 @@ async function fetchLiveOpenRouterFreeModels(): Promise<DiscoveredModel[]> {
 
       if (!isFree) continue;
 
-      const isLarge = m.id.includes('70b') || m.id.includes('r1') || m.id.includes('large');
+      const isTiny = m.id.includes('2.6b') || m.id.includes('note') || m.id.includes('flint') || m.id.includes('inkling') || m.id.includes('xs');
+      const isLarge = m.id.includes('550b') || m.id.includes('70b') || m.id.includes('31b') || m.id.includes('30b') || m.id.includes('29b') || m.id.includes('26b');
       const isVision = m.architecture?.input_modalities?.includes('image') || m.id.includes('vl');
-      const isTools = m.supported_parameters?.includes('tools') ?? true;
+      const isTools = !isTiny && Boolean(m.supported_parameters?.includes('tools'));
 
       discovered.push({
         platform: 'openrouter',
         modelId: m.id,
         displayName: `${m.name || m.id} (Free)`,
-        intelligenceRank: isLarge ? 98 : 88,
-        speedRank: 94,
-        sizeLabel: isLarge ? '70B+' : 'Free',
+        intelligenceRank: isLarge ? 98 : (isTiny ? 45 : 85),
+        speedRank: isTiny ? 98 : 90,
+        sizeLabel: isLarge ? (m.id.includes('550b') ? '550B+' : 'Frontier') : (isTiny ? 'Micro' : 'Large'),
         contextWindow: typeof m.context_length === 'number' && m.context_length > 0 ? m.context_length : 65536,
         supportsVision: Boolean(isVision),
         supportsTools: Boolean(isTools),
@@ -207,31 +208,39 @@ export async function scanAndAutoFetchFreeModels(): Promise<{
 
     // 7. Ensure working Mistral & Cohere models are enabled
     db.prepare(
-      "UPDATE models SET enabled = 1 WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'ministral-3b-latest', 'ministral-14b-latest')"
+      "UPDATE models SET enabled = 1 WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'mistral-large-latest', 'ministral-8b-latest', 'mistral-small-latest')"
     ).run();
     db.prepare(
-      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'ministral-3b-latest', 'ministral-14b-latest'))"
+      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'mistral-large-latest', 'ministral-8b-latest', 'mistral-small-latest'))"
     ).run();
 
     db.prepare(
-      "UPDATE models SET enabled = 1 WHERE platform = 'cohere' AND model_id IN ('command-r-08-2024', 'c4ai-aya-expanse-32b')"
+      "UPDATE models SET enabled = 1 WHERE platform = 'cohere' AND model_id IN ('command-r-plus-08-2024', 'command-r-08-2024', 'c4ai-aya-expanse-32b')"
     ).run();
     db.prepare(
-      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'cohere' AND model_id IN ('command-r-08-2024', 'c4ai-aya-expanse-32b'))"
+      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'cohere' AND model_id IN ('command-r-plus-08-2024', 'command-r-08-2024', 'c4ai-aya-expanse-32b'))"
     ).run();
 
-    // 8. Put verified working models at top priority in fallback_config
+    // 8. Put high-intelligence coding & frontier models at top priority in fallback_config
     const priorityOrdering = [
       { platform: 'mistral', modelId: 'codestral-latest' },
-      { platform: 'openrouter', modelId: 'liquid/lfm-2.5-2.6b:free' },
+      { platform: 'mistral', modelId: 'mistral-large-latest' },
+      { platform: 'cohere', modelId: 'command-r-plus-08-2024' },
+      { platform: 'openrouter', modelId: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
+      { platform: 'openrouter', modelId: 'google/gemma-4-31b-it:free' },
+      { platform: 'openrouter', modelId: 'google/gemma-4-26b-a4b-it:free' },
+      { platform: 'openrouter', modelId: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free' },
+      { platform: 'cohere', modelId: 'command-r-08-2024' },
+      { platform: 'openrouter', modelId: 'xingchen-agi/xing4.0-29b-a4b:free' },
+      { platform: 'mistral', modelId: 'ministral-8b-latest' },
+      { platform: 'mistral', modelId: 'mistral-small-latest' },
+      { platform: 'openrouter', modelId: 'openrouter/free' },
+      { platform: 'openrouter', modelId: 'cohere/north-mini-code:free' },
       { platform: 'openrouter', modelId: 'nvidia/nemotron-3.5-lightning:free' },
+      { platform: 'openrouter', modelId: 'liquid/lfm-2.5-2.6b:free' },
       { platform: 'openrouter', modelId: 'recursive/flint-v1.0:free' },
       { platform: 'openrouter', modelId: 'dots-studio/dots-3-note-preview:free' },
       { platform: 'openrouter', modelId: 'thinkingmachines/inkling:free' },
-      { platform: 'cohere', modelId: 'command-r-08-2024' },
-      { platform: 'openrouter', modelId: 'openrouter/free' },
-      { platform: 'openrouter', modelId: 'cohere/north-mini-code:free' },
-      { platform: 'openrouter', modelId: 'google/gemma-4-26b-a4b-it:free' },
       { platform: 'openrouter', modelId: 'poolside/laguna-s-2.1:free' },
     ];
 

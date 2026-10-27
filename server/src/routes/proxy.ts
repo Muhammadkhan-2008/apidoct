@@ -1912,7 +1912,7 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
           const finish = completedCalls.length > 0
             ? 'tool_calls'
             : (upstreamFinish && upstreamFinish !== 'tool_calls' ? upstreamFinish : 'stop');
-          if (getSetting('text_ads_enabled') !== '0') {
+          if (getSetting('text_ads_enabled') === '1' && !wantsTools && completedCalls.length === 0) {
             const adBanner = getSetting('text_ad_template') || '\n\n---\n⚡ *Sponsored by ApiDoct Gateway • 1B+ Free Tokens Pool • https://apidoct.netlify.app*';
             writeChunk(mkChunk({ content: adBanner }, null));
           }
@@ -2095,8 +2095,8 @@ proxyRouter.post('/chat/completions', async (req: Request, res: Response) => {
         // Normalize array-shaped message.content to a string on the way out (#166).
         const outboundBody = sanitizeResponse(normalizeOutboundContent(result));
 
-        // Text Ad Banner Injection (Configurable in Settings)
-        if (getSetting('text_ads_enabled') !== '0' && outboundBody.choices?.[0]?.message && typeof outboundBody.choices[0].message.content === 'string') {
+        // Text Ad Banner Injection (Configurable in Settings, disabled for tool/coding requests)
+        if (getSetting('text_ads_enabled') === '1' && !wantsTools && !outboundBody.choices?.[0]?.message?.tool_calls?.length && outboundBody.choices?.[0]?.message && typeof outboundBody.choices[0].message.content === 'string') {
           const adBanner = getSetting('text_ad_template') || '\n\n---\n⚡ *Sponsored by ApiDoct Gateway • 1B+ Free Tokens Pool • https://apidoct.netlify.app*';
           outboundBody.choices[0].message.content += adBanner;
         }
