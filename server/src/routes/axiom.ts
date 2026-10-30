@@ -253,6 +253,7 @@ axiomRouter.post('/api/plugins/submit', (req: Request, res: Response) => {
   };
 
   communityPlugins.push(newPlugin);
+  void syncPluginToSupabase(newPlugin);
   console.log(`[PluginMarket] Successfully registered new community plugin: ${newPlugin.name} v${version}`);
 
   return res.json({
@@ -261,6 +262,99 @@ axiomRouter.post('/api/plugins/submit', (req: Request, res: Response) => {
     plugin: newPlugin
   });
 });
+
+// ── SUPABASE CLOUD DATABASE SYNC ──────────────────────────────────────────
+
+async function syncUserToSupabase(session: AxiomUserSession) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return;
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/axiom_users`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        email: session.email,
+        api_key: session.token,
+        tier: session.tier,
+        daily_limit: session.dailyLimit,
+        requests_today: session.requestsToday,
+        last_reset_date: session.lastReset
+      })
+    });
+  } catch (err) {
+    console.warn('[Supabase-Sync] Warning:', err);
+  }
+}
+
+async function syncPluginToSupabase(plugin: CommunityPlugin) {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return;
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/community_plugins`, {
+      method: 'POST',
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        id: plugin.name,
+        name: plugin.name,
+        version: plugin.versions[0]?.version || '1.0.0',
+        category: plugin.metadata.category || 'tools',
+        description_en: plugin.description.en || '',
+        description_zh: plugin.description.zh || '',
+        author: plugin.author || 'Community',
+        source_package: plugin.name
+      })
+    });
+  } catch (err) {
+    console.warn('[Supabase-Plugin-Sync] Warning:', err);
+  }
+}
+
+async function initSupabaseSync() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) return;
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/axiom_users?select=*`, {
+      headers: {
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`
+      }
+    });
+    if (res.ok) {
+      const users = await res.json() as Array<any>;
+      for (const u of users) {
+        if (u.api_key && u.email) {
+          axiomUsers.set(u.api_key, {
+            token: u.api_key,
+            userId: u.id || `usr_${u.email.replace(/[^a-z0-9]/gi, '_')}`,
+            email: u.email,
+            tier: u.tier || 'pro',
+            dailyLimit: u.daily_limit || 10000,
+            requestsToday: u.requests_today || 0,
+            lastReset: u.last_reset_date || getTodayString(),
+            createdAt: u.created_at || new Date().toISOString()
+          });
+        }
+      }
+      console.log(`[Supabase] Successfully loaded ${users.length} users into Axiom auth cache.`);
+    }
+  } catch (e) {
+    console.warn('[Supabase] Initial sync skipped:', e);
+  }
+}
+void initSupabaseSync();
 
 // ── ZERO-BUDGET CURSOR-STYLE POSTMAN DEEP LINK AUTH FLOW ─────────────────────
 
@@ -285,6 +379,7 @@ function createOrGetSession(email: string, tier: 'free' | 'pro' = 'pro'): AxiomU
   };
 
   axiomUsers.set(token, session);
+  void syncUserToSupabase(session);
   return session;
 }
 
