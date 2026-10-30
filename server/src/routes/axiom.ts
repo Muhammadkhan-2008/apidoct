@@ -823,3 +823,71 @@ axiomRouter.get('/admin/users', (req: Request, res: Response) => {
 
   return res.json({ count: list.length, users: list });
 });
+
+// ── DEEPSEEK / AXIOM ACCOUNT PLATFORM & WALLET QUOTA ENDPOINTS ────────────────
+
+function handleCurrentAccountUser(req: Request, res: Response) {
+  const session = resolveSession(req) || {
+    userId: 'usr_axiom_master',
+    email: 'khanmuhammadkolachi390@gmail.com',
+    tier: 'pro'
+  };
+
+  return res.json({
+    code: 0,
+    msg: 'success',
+    data: {
+      biz_code: 0,
+      biz_data: {
+        id: session.userId,
+        email: session.email,
+        mobile: '',
+        mobile_number: '',
+        id_profile: {
+          name: session.email.split('@')[0] + ' (Axiom Pro)',
+          picture: 'https://avatars.githubusercontent.com/u/1'
+        }
+      }
+    }
+  });
+}
+
+axiomRouter.all('/auth-api/v0/users/current', handleCurrentAccountUser);
+axiomRouter.all('/api/v0/users/current', handleCurrentAccountUser);
+
+function handleUserSummary(req: Request, res: Response) {
+  return res.json({
+    code: 0,
+    msg: 'success',
+    data: {
+      biz_code: 0,
+      biz_data: {
+        normal_wallets: [
+          { currency: 'USD', balance: '10000.00' }
+        ],
+        bonus_wallets: [
+          { currency: 'USD', balance: '20000.00' }
+        ]
+      }
+    }
+  });
+}
+
+axiomRouter.all('/api/v0/users/get_user_summary', handleUserSummary);
+axiomRouter.all('/auth-api/v0/users/get_user_summary', handleUserSummary);
+
+function handleUnnotifiedBonuses(req: Request, res: Response) {
+  return res.json({
+    code: 0,
+    msg: 'success',
+    data: {
+      biz_code: 0,
+      biz_data: []
+    }
+  });
+}
+
+axiomRouter.all('/api/v0/bonus/get_unnotified_bonuses', handleUnnotifiedBonuses);
+axiomRouter.all('/api/v0/bonus/user_bonus_notified', (req: Request, res: Response) => {
+  return res.json({ code: 0, msg: 'success', data: { biz_code: 0, biz_data: true } });
+});
