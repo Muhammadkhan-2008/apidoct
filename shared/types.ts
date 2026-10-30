@@ -77,6 +77,15 @@ export type Platform =
   // models (FLUX.1-schnell image, CosyVoice2 TTS) routed via services/media.ts;
   // chat is supported too. Key from siliconflow.com (no card).
   | 'siliconflow'
+  // APInex — OpenAI-compatible aggregator. 20M tokens/day free on 'free/*' models;
+  // requires a browser User-Agent (Cloudflare blocks others). Key from apinex.bond.
+  | 'apinex'
+  // HCNsec — OpenAI-compatible aggregator with high-quota token access. Key from hcnsec.cn.
+  | 'hcnsec'
+  // Dahl Global — OpenAI-compatible inference (https://inference.dahl.global/v1). Key from dahl.global.
+  | 'dahl'
+  // xKiro — OpenAI-compatible aggregator (https://api.xkiro.com/v1). 52M+ token drop wallet. Key from xkiro.com.
+  | 'xkiro'
   // Routeway — OpenAI-compatible aggregator. Free ':free' models ($0) on a
   // rate-limited pool (~5 rpm observed); requires a browser User-Agent (CF
   // blocks others). Key from routeway.ai (no card).

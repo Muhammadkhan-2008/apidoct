@@ -133,6 +133,10 @@ function inferPoolForPlatform(platform: Platform, modelId?: string | null): stri
   if (platform === 'huggingface') return 'huggingface::router';
   if (platform === 'opencode') return 'opencode::promo';
   // Aggregators with a single shared free pool across all ':free'/'auto:free' models.
+  if (platform === 'apinex') return 'apinex::free';
+  if (platform === 'hcnsec') return 'hcnsec::free';
+  if (platform === 'dahl') return 'dahl::account';
+  if (platform === 'xkiro') return 'xkiro::free';
   if (platform === 'routeway') return 'routeway::free';
   if (platform === 'bazaarlink') return 'bazaarlink::free';
   if (platform === 'ainative') return 'ainative::account';
@@ -147,7 +151,7 @@ function inferPoolForPlatform(platform: Platform, modelId?: string | null): stri
 }
 
 function isSharedPool(platform: Platform): boolean {
-  return ['openrouter', 'google', 'groq', 'cerebras', 'sambanova', 'nvidia', 'mistral', 'github', 'cohere', 'cloudflare', 'zhipu', 'ollama', 'kilo', 'pollinations', 'llm7', 'huggingface', 'opencode', 'routeway', 'bazaarlink', 'ainative', 'aion', 'requesty', 'navy', 'nara', 'sealion', 'modelscope', 'aihorde'].includes(platform);
+  return ['openrouter', 'google', 'groq', 'cerebras', 'sambanova', 'nvidia', 'mistral', 'github', 'cohere', 'cloudflare', 'zhipu', 'ollama', 'kilo', 'pollinations', 'llm7', 'huggingface', 'opencode', 'apinex', 'hcnsec', 'dahl', 'xkiro', 'routeway', 'bazaarlink', 'ainative', 'aion', 'requesty', 'navy', 'nara', 'sealion', 'modelscope', 'aihorde'].includes(platform);
 }
 
 type HeaderSpec = { metric: QuotaMetric; limit: string; remaining?: string; reset?: string; strategy?: QuotaResetStrategy };

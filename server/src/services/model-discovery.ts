@@ -176,6 +176,94 @@ function upstreamMessage(bodyText: string): string | null {
   }
 }
 
+export interface ProbedModel extends DiscoveredModel {
+  status: 'working' | 'rejected';
+  latencyMs?: number;
+  error?: string;
+}
+
+/**
+ * Lightweight probe that verifies whether a model actually responds or is rejected.
+ */
+export async function probeSingleModel(
+  baseUrl: string,
+  apiKey: string,
+  modelId: string,
+  timeoutMs = 12_000,
+): Promise<{ status: 'working' | 'rejected'; latencyMs: number; error?: string }> {
+  const normBase = baseUrl.replace(/\/+$/, '');
+  const url = `${normBase}/chat/completions`;
+  const t0 = Date.now();
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      body: JSON.stringify({
+        model: modelId,
+        messages: [{ role: 'user', content: 'respond with 1 word: OK' }],
+        max_tokens: 5,
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    const latencyMs = Date.now() - t0;
+    if (res.ok) {
+      return { status: 'working', latencyMs };
+    }
+    const errText = await res.text().catch(() => '');
+    let errMsg = `HTTP ${res.status}`;
+    try {
+      const parsed = JSON.parse(errText);
+      if (parsed?.error?.message) errMsg = `${errMsg}: ${parsed.error.message}`;
+      else if (parsed?.message) errMsg = `${errMsg}: ${parsed.message}`;
+    } catch {
+      if (errText) errMsg = `${errMsg}: ${errText.slice(0, 100)}`;
+    }
+    return { status: 'rejected', latencyMs, error: errMsg };
+  } catch (err: any) {
+    const latencyMs = Date.now() - t0;
+    return {
+      status: 'rejected',
+      latencyMs,
+      error: err?.name === 'TimeoutError' ? 'Timed out (>12s)' : (err?.message || 'Connection failed'),
+    };
+  }
+}
+
+/**
+ * Concurrently probe a list of discovered models and separate working vs rejected ones.
+ */
+export async function probeAllModels(
+  baseUrl: string,
+  apiKey: string,
+  models: DiscoveredModel[],
+  concurrency = 3,
+): Promise<{ working: ProbedModel[]; rejected: ProbedModel[] }> {
+  const working: ProbedModel[] = [];
+  const rejected: ProbedModel[] = [];
+
+  let index = 0;
+  async function worker() {
+    while (index < models.length) {
+      const current = models[index++];
+      if (!current) break;
+      const res = await probeSingleModel(baseUrl, apiKey, current.id);
+      if (res.status === 'working') {
+        working.push({ ...current, status: 'working', latencyMs: res.latencyMs });
+      } else {
+        rejected.push({ ...current, status: 'rejected', latencyMs: res.latencyMs, error: res.error });
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(concurrency, models.length) }, () => worker());
+  await Promise.all(workers);
+  return { working, rejected };
+}
+
 /**
  * Ask a custom OpenAI-compatible endpoint what it serves. Reuses the provider
  * adapter's own catalog fetch (auth header, proxy, timeout, quota bookkeeping)
@@ -186,6 +274,9 @@ export async function discoverEndpointModels(baseUrl: string, apiKey: string): P
     platform: 'custom',
     name: 'Custom (OpenAI-compatible)',
     baseUrl,
+    extraHeaders: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    },
     // Discovery is interactive — the operator is watching a spinner — so don't
     // inherit the 120s custom-provider chat timeout.
     timeoutMs: 30_000,

@@ -191,10 +191,19 @@ export function ProviderList({ onAddKey }: { onAddKey: () => void }) {
   for (const k of healthData?.keys ?? []) healthKeyMap.set(k.id, k)
   const statusOf = (k: ApiKey) => healthKeyMap.get(k.id)?.status ?? k.status
 
-  const grouped = [...PLATFORMS, CUSTOM_GROUP].map(p => ({
+  const knownPlatformValues = new Set([...PLATFORMS.map(p => p.value), 'custom'])
+  const unknownPlatformKeys = keys.filter(k => !knownPlatformValues.has(k.platform))
+  const dynamicGroups = Array.from(new Set(unknownPlatformKeys.map(k => k.platform))).map(plat => ({
+    value: plat,
+    label: plat.charAt(0).toUpperCase() + plat.slice(1),
+    url: '',
+    keys: keys.filter(k => k.platform === plat),
+  }))
+
+  const grouped = [...[...PLATFORMS, CUSTOM_GROUP].map(p => ({
     ...p,
     keys: keys.filter(k => k.platform === p.value),
-  })).filter(p => p.keys.length > 0)
+  })), ...dynamicGroups].filter(p => p.keys.length > 0)
 
   const totalProviders = grouped.length
   const totalKeys = grouped.reduce((n, g) => n + g.keys.length, 0)
@@ -473,29 +482,29 @@ export function ProviderList({ onAddKey }: { onAddKey: () => void }) {
                                   </Button>
                                 </Tooltip>
                               )}
+                              {Boolean(k.baseUrl || k.platform === 'custom' || ['apinex', 'xkiro', 'dahl', 'hcnsec'].includes(k.platform)) && (
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  className="h-6 gap-1 px-2 text-[11px] font-semibold text-primary hover:bg-primary/10 border-primary/40 bg-primary/5 rounded-lg shadow-xs"
+                                  onClick={() => setDiscoverKeyId(k.id)}
+                                  title="Fetch & Test Models"
+                                >
+                                  <ListPlus className="size-3" />
+                                  <span>Fetch Models</span>
+                                </Button>
+                              )}
                               {k.platform === 'custom' && k.baseUrl && (
-                                <>
-                                  <Tooltip text={t('keys.addKey')}>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      onClick={() => setAddKeyBaseUrl(k.baseUrl!)}
-                                      aria-label={t('keys.addKey')}
-                                    >
-                                      <KeyRound className="size-3" />
-                                    </Button>
-                                  </Tooltip>
-                                  <Tooltip text={t('keys.discoverModels')}>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      onClick={() => setDiscoverKeyId(k.id)}
-                                      aria-label={t('keys.discoverModels')}
-                                    >
-                                      <ListPlus className="size-3" />
-                                    </Button>
-                                  </Tooltip>
-                                </>
+                                <Tooltip text={t('keys.addKey')}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    onClick={() => setAddKeyBaseUrl(k.baseUrl!)}
+                                    aria-label={t('keys.addKey')}
+                                  >
+                                    <KeyRound className="size-3" />
+                                  </Button>
+                                </Tooltip>
                               )}
                               <Tooltip text={t('keys.checkNow')}>
                                 <Button

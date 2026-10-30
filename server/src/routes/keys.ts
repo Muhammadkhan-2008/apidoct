@@ -13,7 +13,7 @@ import { ensureModelInProfiles } from '../services/profile-models.js';
 import { getActiveCooldownsForKeys, clearCooldownsForKey } from '../services/ratelimit.js';
 import { resolveCustomEndpointKey, customEndpointKeyIds, siblingEndpointKeyId, endpointHasCredential } from '../services/custom-endpoint.js';
 import { customModelSeed } from '../services/custom-model-seed.js';
-import { discoverEndpointModels, ModelDiscoveryError } from '../services/model-discovery.js';
+import { discoverEndpointModels, probeAllModels, ModelDiscoveryError } from '../services/model-discovery.js';
 import { endpointScopeForBaseUrl, normalizeBaseUrl } from '../lib/endpoint-scope.js';
 
 export const keysRouter = Router();
@@ -27,6 +27,7 @@ const PLATFORMS = [
   'openrouter', 'github', 'cohere', 'cloudflare', 'zhipu', 'ollama',
   'kilo', 'pollinations', 'llm7', 'huggingface', 'opencode', 'ovh', 'agnes', 'reka', 'siliconflow',
   'routeway', 'bazaarlink', 'ainative', 'aion', 'requesty', 'navy', 'nara', 'sealion', 'modelscope', 'aihorde',
+  'apinex', 'hcnsec', 'dahl', 'xkiro',
   'deepseek', 'moonshot', 'together', 'fireworks', 'deepinfra', 'hyperbolic', 'novita', 'perplexity',
   'upstage', 'nebius', 'scaleway', 'friendli', 'featherless', 'ai21', 'baichuan', 'yi', 'minimax', 'stepfun', 'doubao',
   'tavily', 'serper', 'custom',
@@ -588,6 +589,7 @@ interface CustomEndpointRef {
   keyId: number | null;
   /** Plaintext of that row's credential, when there is one. */
   storedKey: string | null;
+  platform?: string;
 }
 
 /**
@@ -604,17 +606,18 @@ function resolveEndpointRef(ref: { keyId?: number; baseUrl?: string }): CustomEn
   if (ref.keyId !== undefined) {
     const row = db.prepare('SELECT id, platform, base_url, encrypted_key, iv, auth_tag FROM api_keys WHERE id = ?')
       .get(ref.keyId) as { id: number; platform: string; base_url: string | null; encrypted_key: string; iv: string; auth_tag: string } | undefined;
-    if (!row || row.platform !== 'custom' || !row.base_url) {
-      throw Object.assign(new Error('keyId does not name a custom endpoint'), { status: 400 });
+    if (!row) {
+      throw Object.assign(new Error('keyId not found'), { status: 404 });
     }
-    if (requestedBaseUrl !== undefined && requestedBaseUrl !== row.base_url) {
-      throw Object.assign(new Error('baseUrl does not match the endpoint keyId belongs to'), { status: 400 });
+    const effectiveBaseUrl = row.base_url || requestedBaseUrl || (resolveProvider(row.platform as any) as any)?.baseUrl;
+    if (!effectiveBaseUrl) {
+      throw Object.assign(new Error('This provider key has no base_url configured'), { status: 400 });
     }
     let storedKey: string | null = null;
     try {
       storedKey = decrypt(row.encrypted_key, row.iv, row.auth_tag);
     } catch { /* an undecryptable row still names the endpoint */ }
-    return { baseUrl: row.base_url, keyId: row.id, storedKey };
+    return { baseUrl: effectiveBaseUrl, keyId: row.id, storedKey, platform: row.platform };
   }
 
   if (!requestedBaseUrl) {
@@ -624,15 +627,15 @@ function resolveEndpointRef(ref: { keyId?: number; baseUrl?: string }): CustomEn
   // Any key of this base_url serves the whole endpoint (#619), so the first one
   // is as good a representative as any.
   const rows = db.prepare(`
-    SELECT id, encrypted_key, iv, auth_tag FROM api_keys
-     WHERE platform = 'custom' AND base_url = ? ORDER BY id
-  `).all(requestedBaseUrl) as Array<{ id: number; encrypted_key: string; iv: string; auth_tag: string }>;
+    SELECT id, platform, encrypted_key, iv, auth_tag FROM api_keys
+     WHERE base_url = ? ORDER BY id
+  `).all(requestedBaseUrl) as Array<{ id: number; platform: string; encrypted_key: string; iv: string; auth_tag: string }>;
   for (const row of rows) {
     try {
-      return { baseUrl: requestedBaseUrl, keyId: row.id, storedKey: decrypt(row.encrypted_key, row.iv, row.auth_tag) };
+      return { baseUrl: requestedBaseUrl, keyId: row.id, storedKey: decrypt(row.encrypted_key, row.iv, row.auth_tag), platform: row.platform };
     } catch { /* try the next credential */ }
   }
-  return { baseUrl: requestedBaseUrl, keyId: rows[0]?.id ?? null, storedKey: null };
+  return { baseUrl: requestedBaseUrl, keyId: rows[0]?.id ?? null, storedKey: null, platform: rows[0]?.platform ?? 'custom' };
 }
 
 // SSRF guard (#440): a base_url is the one user-controlled outbound target.
@@ -657,6 +660,7 @@ const discoverModelsSchema = z.object({
   // Lets the Keys page fetch a list for an endpoint the user is still typing in,
   // before it has been saved. Falls back to the endpoint's stored credential.
   apiKey: z.string().optional(),
+  probe: z.boolean().optional(),
 }).refine(
   d => d.baseUrl !== undefined || d.keyId !== undefined,
   { message: 'baseUrl or keyId is required' },
@@ -701,11 +705,24 @@ keysRouter.post('/custom/discover-models', async (req: Request, res: Response) =
     }
 
     const models = discovered.map(m => ({ ...m, registered: registeredIds.has(m.id) }));
+    let working: any[] | undefined = undefined;
+    let rejected: any[] | undefined = undefined;
+
+    if (parsed.data.probe) {
+      const probeResult = await probeAllModels(endpoint.baseUrl, apiKey, discovered);
+      working = probeResult.working;
+      rejected = probeResult.rejected;
+    }
+
     res.json({
       baseUrl: endpoint.baseUrl,
       keyId: endpoint.keyId,
       models,
+      working,
+      rejected,
       total: models.length,
+      workingCount: working ? working.length : undefined,
+      rejectedCount: rejected ? rejected.length : undefined,
       registeredCount: models.filter(m => m.registered).length,
     });
   } catch (err: any) {
@@ -827,24 +844,12 @@ keysRouter.post('/custom', async (req: Request, res: Response) => {
     // custom model is explored instead of buried at intelligence 0 (#488).
     const seed = customModelSeed(db);
 
+    const targetPlatform = endpoint.platform || 'custom';
     const registered: { modelDbId: number; model: string; displayName: string; supportsTools: boolean; supportsVision: boolean; created: boolean }[] = [];
     for (const { modelId, displayName, supportsTools, supportsVision } of entries) {
-      // Register each model bound to THIS endpoint's key. Custom models carry no
-      // rate limits and sort last in the intelligence preset (size_label tier).
-      // Identity is per endpoint (#651): the same model id on a DIFFERENT relay
-      // is a separate row with its own enabled flag, ranks and stats, instead of
-      // silently rebinding the other endpoint's row as it used to. A model
-      // already on THIS endpoint keeps the key it has, so adding a second
-      // credential doesn't re-bind it (#619).
-      // Capability flags: an unset flag binds NULL so COALESCE picks the insert
-      // default (tools 1, vision 0) on a new row and preserves the existing
-      // value on re-registration. (#470) An omitted display name binds NULL the
-      // same way — it falls back to the model id on a new row and leaves a name
-      // already on the row alone, so the bulk re-registration behind "Fetch
-      // models" (which posts bare ids) can't wipe names the operator set.
       const bound = db.prepare(
-        "SELECT key_id FROM models WHERE platform = 'custom' AND model_id = ? AND endpoint_scope = ?",
-      ).get(modelId, endpointScope) as { key_id: number | null } | undefined;
+        "SELECT key_id FROM models WHERE platform = ? AND model_id = ? AND endpoint_scope = ?",
+      ).get(targetPlatform, modelId, endpointScope) as { key_id: number | null } | undefined;
       const created = bound === undefined;
       const bindKeyId = bound?.key_id != null && endpointKeyIds.has(bound.key_id) ? bound.key_id : keyId;
       const toolsParam = supportsTools === undefined ? null : (supportsTools ? 1 : 0);
@@ -857,7 +862,7 @@ keysRouter.post('/custom', async (req: Request, res: Response) => {
           (platform, model_id, display_name, intelligence_rank, speed_rank, size_label,
            rpm_limit, rpd_limit, tpm_limit, tpd_limit, monthly_token_budget, context_window, enabled, key_id,
            supports_tools, supports_vision, source, endpoint_scope)
-        VALUES ('custom', @modelId, COALESCE(@displayName, @modelId), @intelligenceRank, @speedRank, @sizeLabel,
+        VALUES (@targetPlatform, @modelId, COALESCE(@displayName, @modelId), @intelligenceRank, @speedRank, @sizeLabel,
            NULL, NULL, NULL, NULL, '', NULL, 1, @keyId,
            COALESCE(@tools, 1), COALESCE(@vision, 0), 'user', @endpointScope)
         ON CONFLICT(platform, model_id, endpoint_scope)
@@ -868,7 +873,7 @@ keysRouter.post('/custom', async (req: Request, res: Response) => {
           supports_tools = COALESCE(@tools, supports_tools),
           supports_vision = COALESCE(@vision, supports_vision)
       `).run({
-        modelId, displayName, keyId: bindKeyId, tools: toolsParam, vision: visionParam,
+        targetPlatform, modelId, displayName, keyId: bindKeyId, tools: toolsParam, vision: visionParam,
         intelligenceRank: seed.intelligenceRank, speedRank: seed.speedRank, sizeLabel: seed.sizeLabel,
         endpointScope,
       });
@@ -877,8 +882,8 @@ keysRouter.post('/custom', async (req: Request, res: Response) => {
       // or capability flag resolves in SQL, so the row is the only place that
       // knows what this model is actually called now.
       const modelRow = db.prepare(
-        "SELECT id, display_name, supports_tools, supports_vision FROM models WHERE platform = 'custom' AND model_id = ? AND endpoint_scope = ?",
-      ).get(modelId, endpointScope) as { id: number; display_name: string; supports_tools: number; supports_vision: number };
+        "SELECT id, display_name, supports_tools, supports_vision FROM models WHERE platform = ? AND model_id = ? AND endpoint_scope = ?",
+      ).get(targetPlatform, modelId, endpointScope) as { id: number; display_name: string; supports_tools: number; supports_vision: number };
 
       // Append to the fallback chain if not already present.
       const inChain = db.prepare('SELECT 1 FROM fallback_config WHERE model_db_id = ?').get(modelRow.id);

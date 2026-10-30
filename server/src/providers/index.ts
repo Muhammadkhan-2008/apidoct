@@ -244,6 +244,51 @@ register(new OpenAICompatProvider({
   baseUrl: 'https://api.siliconflow.com/v1',
 }));
 
+// APInex — OpenAI-compatible aggregator (https://apinex.bond/v1). 20M tokens/day
+// free tier on 'free/*' models (cost_tokens: 0). Cloudflare in front rejects
+// non-browser User-Agents with error 1010, so a browser-style UA is required.
+// Free key from apinex.bond.
+register(new OpenAICompatProvider({
+  platform: 'apinex',
+  name: 'APInex',
+  baseUrl: 'https://apinex.bond/v1',
+  extraHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  },
+  timeoutMs: 60_000,
+}));
+
+// HCNsec — OpenAI-compatible aggregator (https://api.hcnsec.cn/v1).
+// Provides high-quota free tokens via directory link.hcnsec.cn.
+register(new OpenAICompatProvider({
+  platform: 'hcnsec',
+  name: 'HCNsec',
+  baseUrl: 'https://api.hcnsec.cn/v1',
+  timeoutMs: 60_000,
+}));
+
+// Dahl Global — OpenAI-compatible inference (https://inference.dahl.global/v1).
+register(new OpenAICompatProvider({
+  platform: 'dahl',
+  name: 'Dahl Global',
+  baseUrl: 'https://inference.dahl.global/v1',
+  extraHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  },
+  timeoutMs: 60_000,
+}));
+
+// xKiro — OpenAI-compatible aggregator (https://api.xkiro.com/v1).
+register(new OpenAICompatProvider({
+  platform: 'xkiro',
+  name: 'xKiro',
+  baseUrl: 'https://api.xkiro.com/v1',
+  extraHeaders: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  },
+  timeoutMs: 60_000,
+}));
+
 // Routeway — OpenAI-compatible aggregator (api.routeway.ai/v1). Free models
 // carry a ':free' suffix and cost $0; the free pool is rate-limited (docs say
 // 20 rpm / 200 rpd, but a live test on 2026-06-26 observed a stricter 5 rpm).
@@ -545,6 +590,9 @@ export function resolveProvider(platform: Platform, baseUrl?: string | null): Ba
       platform: 'custom',
       name: 'Custom (OpenAI-compatible)',
       baseUrl: trimmed,
+      extraHeaders: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
       timeoutMs: CUSTOM_PROVIDER_TIMEOUT_MS,
     });
   }

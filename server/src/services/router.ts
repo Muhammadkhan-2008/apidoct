@@ -686,6 +686,8 @@ function scoreChainEntry(
  * faithful reflection of the user's picked strategy, not a re-sampled draw each
  * request. Priority mode is deterministic either way.
  */
+let modelRoundRobinCounter = 0;
+
 function orderChain(chain: ChainRow[], strategy: RoutingStrategy, sampled = true): ChainRow[] {
   // Tier first, always: it is the one ordering input that score must not be able
   // to override (see ChainRow.match_tier). Zero for every chain built anywhere
@@ -694,10 +696,18 @@ function orderChain(chain: ChainRow[], strategy: RoutingStrategy, sampled = true
   const weights = weightsFor(strategy);
   if (!weights) {
     // Legacy priority mode: base priority + 429 penalty, ascending.
-    return chain
+    const sorted = chain
       .map(e => ({ e, eff: e.priority + getPenalty(e.model_db_id) }))
       .sort((a, b) => tier(a.e) - tier(b.e) || a.eff - b.eff || a.e.priority - b.e.priority)
       .map(x => x.e);
+    if (!sampled || sorted.length <= 1) return sorted;
+    const minEff = Math.min(...sorted.map(e => e.priority + getPenalty(e.model_db_id)));
+    const topCount = sorted.filter(e => (e.priority + getPenalty(e.model_db_id)) === minEff).length;
+    if (topCount > 1) {
+      const rot = (modelRoundRobinCounter++) % topCount;
+      return [...sorted.slice(rot, topCount), ...sorted.slice(0, rot), ...sorted.slice(topCount)];
+    }
+    return sorted;
   }
 
   const composites = chain.map(e => intelligenceComposite(e.size_label, e.intelligence_rank));
