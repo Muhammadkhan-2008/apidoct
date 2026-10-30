@@ -1,0 +1,350 @@
+{
+  "keys": [
+    {
+      "id": 1,
+      "platform": "openrouter",
+      "label": "Openrouter",
+      "encrypted_key": "8ea7ac6a9975e312d5868832791c5ff31db4daee1e85e16ffba4d639e72236197eaa80d4369a9b30c36e158866a9d8dfcfc9aae48d3b84b15c9c51184e2d4a221d03f6aae00b3c06be",
+      "iv": "0d621e23e17df926062981d9625544c5",
+      "auth_tag": "084915d0f0aa10031f46c5c61b72ebf0",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:04:54",
+      "last_checked_at": "2026-10-29 14:35:38",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 2,
+      "platform": "openrouter",
+      "label": "Openrouter 2",
+      "encrypted_key": "4a7a0ee7955b15f29f856fd3ae4eef674bd26af8467ed1638271c18f5b2e40408b51cfb3facd9428872d402972e059cac8cee1e18c9933a427d821a8aea0d8224efcf1e8f6181346df",
+      "iv": "2ea3fdf8fcecdb452e615f68d49e7fda",
+      "auth_tag": "2edfb4594a9d5241701b7c441f086c54",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:07:39",
+      "last_checked_at": "2026-10-29 14:35:40",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 3,
+      "platform": "openrouter",
+      "label": "Openrouter 3",
+      "encrypted_key": "eeb479179a3db023b6f9b5cc918e69fa312bd0a2f088985dab06f01e0989c642e8c4bbdd7dc7f68ed01e64e2c8b2f277f4424f49c76b47dec51a51ab8536c056d6e1c3aea6dd12e9ef",
+      "iv": "c7b8d7d73b8e7b2cea9e33df59186df7",
+      "auth_tag": "d5ff2fc9903c750eb7318298fc32550e",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:11:14",
+      "last_checked_at": "2026-10-29 14:35:41",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 4,
+      "platform": "google",
+      "label": "Googlle 1",
+      "encrypted_key": "e9c738030d1d57b1c70a24dde01b158a494eb60561073d671cdf096e29f8a499cf891027f4fb3f6411a956b80562bacfe07656c29b",
+      "iv": "f8bcb776dbda202274d034d558370ce7",
+      "auth_tag": "d33d402e6fae64efa6bd3800a7aa690a",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:12:45",
+      "last_checked_at": "2026-10-29 14:35:38",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 5,
+      "platform": "google",
+      "label": "Google 2",
+      "encrypted_key": "1446923742431b35248f669890fdc5f132cb00a97aa9a024456f7efc79f06b60a4e45d3058bd8f28c7a6695946d875d4e8b527fa08",
+      "iv": "949ebca7d172f071f5ab78409e505015",
+      "auth_tag": "4cf3f27c64e2d0dfbd404e12789aa445",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:13:37",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 6,
+      "platform": "google",
+      "label": "Google 3",
+      "encrypted_key": "9d1172076e8c0b6abec46ec13db50a3f305bdbbc300b89db0bdc71d6ffc9521c62d06317f954364619ce6cd8bed283affbd8511b93",
+      "iv": "75393f5762e4c088adfdf01af1feb876",
+      "auth_tag": "c4a6c0dc4b06192d4bd58304a5df47fc",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:15:24",
+      "last_checked_at": "2026-10-29 14:35:40",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 7,
+      "platform": "mistral",
+      "label": "Mstrl1",
+      "encrypted_key": "b8b75f21e404648ffcb576e88c47114c94c8a6c68d3448a4d0a4afa3d5654bc497f2ef2b9af0173236b5c8116b",
+      "iv": "f56b30a2e3aff9559bdfbd0894a44a36",
+      "auth_tag": "df5fefa194e303f64698b1e12699841b",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:20:15",
+      "last_checked_at": "2026-10-29 14:35:38",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 8,
+      "platform": "mistral",
+      "label": "Mstrl2",
+      "encrypted_key": "37b517f0d6858f556e17d3fcaa82729faf3b9f8214029c4e51361b9cc9a4b82fb5a3d7c33a4e3a7b0a7b49fecb",
+      "iv": "6a642c1c7b4cc0fa2e344dedc521064d",
+      "auth_tag": "3c0b224acc79dab4e34272b859088bf3",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:22:26",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 9,
+      "platform": "cohere",
+      "label": "Cohere 1",
+      "encrypted_key": "74f601cdb2472775e38ce3fa55c5505e3aaf06d6f544d1ed3267ba7ea1038c598d4399fb89b5b98f",
+      "iv": "72c8ef3f64cb5a0ea97480197e36ac07",
+      "auth_tag": "919053c40f0018bba5a778561eb693c4",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-23 02:25:21",
+      "last_checked_at": "2026-10-29 14:35:38",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 13,
+      "platform": "apinex",
+      "label": "APInex 20M Free",
+      "encrypted_key": "24506ce6a02ff3e6ca6dadfeba51fb9074d06165f3f53551d8a5b90a7231476c2ccbd49928b09d7725050e74027c72ddccd7d46290",
+      "iv": "37562082275807d2b8ece316d610917b",
+      "auth_tag": "e18d126db57bce8ebf6ae199796a8fca",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 02:46:45",
+      "last_checked_at": "2026-10-29 14:35:48",
+      "base_url": "https://apinex.bond/v1",
+      "last_health_error": null
+    },
+    {
+      "id": 14,
+      "platform": "hcnsec",
+      "label": "HCNsec Free",
+      "encrypted_key": "087163dda68bb321b5c44666319a758dc713e2cafcbfe83b62bda7cbd74419aa4ba045609fef3a9597a6114ac1146e84d6e44c",
+      "iv": "02ada06c66d894fdae2f100076aa162f",
+      "auth_tag": "6653dd6ef09ce12c517b91b125cd649c",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 02:46:45",
+      "last_checked_at": "2026-10-29 14:35:40",
+      "base_url": "https://api.hcnsec.cn/v1",
+      "last_health_error": null
+    },
+    {
+      "id": 15,
+      "platform": "dahl",
+      "label": "Dahl Global",
+      "encrypted_key": "ef324adcb3c67d108551fc52c539eead8970de48ddda8361c7c21fefb20a7cde6d41f386e895",
+      "iv": "e732b45ec8bcd88e9eca079149edd072",
+      "auth_tag": "65406b627cd4552055faccb95324f302",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 02:59:33",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": "https://inference.dahl.global/v1",
+      "last_health_error": null
+    },
+    {
+      "id": 16,
+      "platform": "xkiro",
+      "label": "xKiro (52M Tokens)",
+      "encrypted_key": "dcc911d02b87e990f03d261a53ecdf816f098b416085dd952f155d9471825178bb2d6d55927043b206b5817f0c977eafa5b7d2b31eac",
+      "iv": "ae7809c417ecb670903c6f8feaa2aeee",
+      "auth_tag": "7f021efcee02d7f032a34a06dc4a5eec",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 03:44:27",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": "https://api.xkiro.com/v1",
+      "last_health_error": null
+    },
+    {
+      "id": 17,
+      "platform": "custom",
+      "label": "api.xkiro.com",
+      "encrypted_key": "9851c60962ad",
+      "iv": "57e2e5d111ab169d551f84873155d78d",
+      "auth_tag": "90b071ac72ecc10346f0623417eab837",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 04:10:22",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": "https://api.xkiro.com/v1",
+      "last_health_error": null
+    },
+    {
+      "id": 18,
+      "platform": "google",
+      "label": "PC-api",
+      "encrypted_key": "60fb7e825441c268f222c68c3a65559a669d7c9af365e7b6580ae13f196d522694d82b845e4205",
+      "iv": "b71de5b613ba9c6ec3891044ef0730c6",
+      "auth_tag": "34fb53560dcd8d55f2d5c9f1288c460b",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:41",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 19,
+      "platform": "openrouter",
+      "label": "PC-openrouter",
+      "encrypted_key": "607e73971571cb2700610c30eebed73583a02d5a02f0515b4ae25e9afbf51c67b163e0e85a9969fb64e9bcdb3a2e98e28fbaf98479e3964ab9385a1acc0a046b4bfbb80544563615ff",
+      "iv": "1e41edbf13cd69b529abec59bd990326",
+      "auth_tag": "243975bf2ba26995ec947c495cfa6fcf",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:41",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 20,
+      "platform": "openrouter",
+      "label": "PC-openrouter 2",
+      "encrypted_key": "af068d099298bae8eeeb92f24b4cb22a68b73f7ae21c7d3878e4ac1e741a4d276a28ae856c5a8e801d2b3c0a595728fa659b3a31f69d6ac2d5adaa10c6ffa3eeca411cff496bd94cb8",
+      "iv": "148b8b00e3b111ec61b968c5520bf90a",
+      "auth_tag": "76892733a18066833b6ad9f6a25f6734",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:43",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 21,
+      "platform": "groq",
+      "label": "PC-groq",
+      "encrypted_key": "3bedbe7384f8509dd8b6960c1ac87de93564b47c5554be9d2e7b34429be69fea69253a5005601779f7cf921c4f20c4999fa72a03041e5641",
+      "iv": "4b6c9d6e54ecf257020df88eb954586f",
+      "auth_tag": "d6c7961d9c5c9467cfa9a9372212dd92",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:39",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 22,
+      "platform": "tavily",
+      "label": "PC-tavily",
+      "encrypted_key": "e00933db4111bd16d95fe37aa6cb1705c45cb3dd42cc7c353d7049d1a0f1cde57cf8e6f5b50986691b8800ee50e4d90706664d4cc72727ca7a17",
+      "iv": "bb1a3e248a8dd35b9ab749865e52f7b9",
+      "auth_tag": "60868dad7ac65cca76ec23f6614ecc21",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:38",
+      "base_url": null,
+      "last_health_error": null
+    },
+    {
+      "id": 23,
+      "platform": "custom",
+      "label": "PC-api.orcarouter.ai",
+      "encrypted_key": "0cdc9f8efe37a6dcd4730535e7e970806d5cabb5bc718d8f03360bd5a2875e921e22aebc4bdd203c72074203299122b9745689",
+      "iv": "40dbb48f7e39a2db611fa8199d0e564c",
+      "auth_tag": "bf2abef8567ad9aae47e5e945aca1865",
+      "status": "healthy",
+      "enabled": 1,
+      "created_at": "2026-10-28 16:28:04",
+      "last_checked_at": "2026-10-29 14:35:40",
+      "base_url": "https://api.orcarouter.ai/v1",
+      "last_health_error": null
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "email": "khanmuhammadkolachi390@gmail.com",
+      "password_hash": "scrypt$f66d9fe5f94fcc513ed1fcb3ab7461ac$84d3eb99dd50927d9a0516b76f81d1df9b0d1ece364fb883cb16a376f52373d7e7bf796f88b8db1c84ce6acd07ae40c769286a0cf7c9ce12bcd967435f945b1e",
+      "created_at": "2026-10-23 01:55:41"
+    }
+  ],
+  "settings": [
+    {
+      "key": "embeddings_default_family",
+      "value": "gemini-embedding-001"
+    },
+    {
+      "key": "unified_api_key",
+      "value": "apidoct-21ee96f3f6cf9713b93dc23f896b6b8933dc4808db6b7708"
+    },
+    {
+      "key": "active_profile_id",
+      "value": "1"
+    },
+    {
+      "key": "total_requests",
+      "value": "331.0"
+    },
+    {
+      "key": "total_input_tokens",
+      "value": "3999464.0"
+    },
+    {
+      "key": "total_output_tokens",
+      "value": "55099.0"
+    },
+    {
+      "key": "ollama_emulation",
+      "value": "off"
+    },
+    {
+      "key": "expose_cc_discovery_aliases",
+      "value": "0"
+    },
+    {
+      "key": "routing_strategy",
+      "value": "priority"
+    },
+    {
+      "key": "catalog_last_error",
+      "value": "Invalid URL"
+    },
+    {
+      "key": "first_request_at",
+      "value": "2026-10-23 02:30:16"
+    },
+    {
+      "key": "proxy_bypass",
+      "value": "custom"
+    },
+    {
+      "key": "text_ads_enabled",
+      "value": "0"
+    },
+    {
+      "key": "anthropic_model_map",
+      "value": "{\"default\": \"auto\", \"opus\": \"auto\", \"sonnet\": \"auto\", \"haiku\": \"auto\"}"
+    }
+  ]
+}

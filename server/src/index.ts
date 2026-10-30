@@ -12,7 +12,7 @@ import { NodeScheduler } from './lib/scheduler.js';
 import { loadConfig } from './lib/config.js';
 import { applyDeclarativeConfigFromEnv } from './services/declarative-config.js';
 import { restoreDbBackupIfNeeded, startDbBackupPump } from './lib/db-backup.js';
-import { userCount } from './services/auth.js';
+import { userCount, resetUserPassword } from './services/auth.js';
 import { generateSetupCode } from './lib/setup-code.js';
 import { warnOnEnvDrift } from './lib/env-drift.js';
 import { installLogRedaction } from './lib/log-redaction.js';
@@ -40,6 +40,17 @@ async function main() {
   }
   initDb(config.dbPath ?? undefined);
   applyDeclarativeConfigFromEnv();
+
+  // Environment-driven admin password reset for Render Cloud
+  if (process.env.ADMIN_PASSWORD_RESET) {
+    const newPass = process.env.ADMIN_PASSWORD_RESET.trim();
+    if (newPass.length >= 8) {
+      const resetOk = resetUserPassword(newPass);
+      if (resetOk) {
+        console.log('[auth] Master admin password successfully reset via ADMIN_PASSWORD_RESET environment variable.');
+      }
+    }
+  }
 
   // First-run hardening: when the dashboard is still unclaimed, mint a one-time
   // setup code and log it. A loopback browser can finish setup without it; a

@@ -232,7 +232,9 @@ proxyRouter.get('/models', (req: Request, res: Response) => {
   const { models: allListed, autoContextWindow } = buildModelListing();
 
   const q = String(req.query.available ?? req.query.connected ?? req.query.ready ?? '').toLowerCase();
-  const onlyAvailable = q === '1' || q === 'true' || q === 'yes';
+  const showAll = String(req.query.all ?? '').toLowerCase() === 'true';
+  // Filter out dead/keyless models by default so IDE clients only receive usable models
+  const onlyAvailable = !showAll || q === '1' || q === 'true' || q === 'yes';
   const listed = onlyAvailable ? allListed.filter(m => m.available === 1) : allListed;
 
   res.json({

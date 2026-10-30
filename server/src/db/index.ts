@@ -139,6 +139,51 @@ export function initDb(
 
   if (!isEncryptionKeyInitialized()) initEncryptionKey(db);
 
+  // Auto-seed initial 20 keys, settings, and user if empty
+  try {
+    const keyCount = (db.prepare('SELECT COUNT(*) as count FROM api_keys').get() as { count: number })?.count ?? 0;
+    const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number })?.count ?? 0;
+    if (keyCount === 0 || userCount === 0) {
+      const candidatePaths = [
+        path.resolve(__dirname, './seed-data.json'),
+        path.resolve(__dirname, '../../src/db/seed-data.json'),
+        path.resolve(process.cwd(), 'src/db/seed-data.json'),
+        path.resolve(process.cwd(), 'server/src/db/seed-data.json'),
+      ];
+      const seedPath = candidatePaths.find(p => fs.existsSync(p));
+      if (seedPath) {
+        const seed = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+        if (keyCount === 0 && seed.keys && Array.isArray(seed.keys)) {
+          const insertKey = db.prepare(`
+            INSERT OR IGNORE INTO api_keys (id, platform, label, encrypted_key, iv, auth_tag, status, enabled, created_at, last_checked_at, base_url, last_health_error)
+            VALUES (@id, @platform, @label, @encrypted_key, @iv, @auth_tag, @status, @enabled, @created_at, @last_checked_at, @base_url, @last_health_error)
+          `);
+          for (const k of seed.keys) insertKey.run(k);
+          console.log(`[seed] Successfully seeded ${seed.keys.length} master API keys into database from ${seedPath}.`);
+        }
+        if (userCount === 0 && seed.users && Array.isArray(seed.users)) {
+          const insertUser = db.prepare(`
+            INSERT OR IGNORE INTO users (id, email, password_hash, created_at)
+            VALUES (@id, @email, @password_hash, @created_at)
+          `);
+          for (const u of seed.users) insertUser.run(u);
+          console.log(`[seed] Successfully seeded master admin user ${seed.users[0]?.email}.`);
+        }
+        if (seed.settings && Array.isArray(seed.settings)) {
+          const insertSetting = db.prepare(`
+            INSERT OR REPLACE INTO settings (key, value) VALUES (@key, @value)
+          `);
+          for (const s of seed.settings) insertSetting.run(s);
+          console.log(`[seed] Successfully seeded system settings.`);
+        }
+      } else {
+        console.warn('[seed] seed-data.json not found in candidate paths:', candidatePaths);
+      }
+    }
+  } catch (err: any) {
+    console.error('[seed] Notice during seed-data check:', err?.message ?? err);
+  }
+
   return db;
 }
 

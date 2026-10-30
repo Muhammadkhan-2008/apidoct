@@ -36,9 +36,8 @@ import {
 } from './ratelimit.js';
 import { probeKeyValidity, type KeyProbeOutcome } from './health.js';
 
-// How often the scanner wakes up to look at the cooldown table. Scanning is one
-// cheap indexed SELECT; actual probes are gated far harder below.
-const SCAN_INTERVAL_MS = 60 * 1000;
+// How often the scanner wakes up to look at the cooldown table.
+const SCAN_INTERVAL_MS = 30 * 1000;
 
 // A cooldown only becomes probe-ripe after this fraction of its bench has been
 // served. Probing a seconds-old cooldown would mostly re-confirm the failure
@@ -46,9 +45,8 @@ const SCAN_INTERVAL_MS = 60 * 1000;
 // clear, and long escalated benches still recover hours early.
 const MIN_ELAPSED_FRACTION = 0.5;
 
-// Not worth probing a cooldown that is about to expire on its own — the probe
-// would cost a validate call to save less than a scan interval of idle time.
-const MIN_REMAINING_MS = 60 * 1000;
+// Not worth probing a cooldown that is about to expire on its own
+const MIN_REMAINING_MS = 30 * 1000;
 
 // Failed-probe backoff per key: 2m, 4m, 8m, capped at 15m. Keys that stay bad
 // converge to one validate call per 15 minutes — a third of what the 5-minute

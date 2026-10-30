@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp src/db/seed-data.json dist/db/seed-data.json",
     "start": "node dist/index.js",
     "test": "vitest run --pool=forks --fileParallelism=false",
     "test:watch": "vitest",
