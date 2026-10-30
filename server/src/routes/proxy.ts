@@ -863,16 +863,9 @@ proxyRouter.post('/completions', async (req: Request, res: Response) => {
       if (enabled) {
         preferredModel = enabled.id;
       } else {
-        const disabled = db.prepare('SELECT id FROM models WHERE model_id = ?').get(requestedModel) as { id: number } | undefined;
-        const reason = disabled ? 'is disabled' : 'is not in the catalog';
-        res.status(404).json({
-          error: {
-            message: `Model '${requestedModel}' ${reason}. Use 'auto' (or omit the 'model' field) to auto-route, or call /v1/models for the available list.`,
-            type: 'invalid_request_error',
-            code: 'model_not_found',
-          },
-        });
-        return;
+        // Soft fallback: if requested model is disabled or not found, auto-route instead of 404
+        console.log(`[Router] Model '${requestedModel}' not explicitly enabled; auto-routing completion request.`);
+        preferredModel = undefined;
       }
     }
   }

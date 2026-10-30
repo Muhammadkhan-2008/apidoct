@@ -138,17 +138,27 @@ export async function scanAndAutoFetchFreeModels(): Promise<{
       }
     }
 
-    // 5. Disable Google models due to project 403 (billing required)
-    const googleModels = db
-      .prepare("SELECT id, model_id FROM models WHERE platform = 'google'")
-      .all() as Array<{ id: number; model_id: string }>;
-    for (const gm of googleModels) {
-      db.prepare('UPDATE models SET enabled = 0 WHERE id = ?').run(gm.id);
-      db.prepare('UPDATE fallback_config SET enabled = 0 WHERE model_db_id = ?').run(gm.id);
-      db.prepare(
-        "INSERT OR REPLACE INTO catalog_model_tombstones (kind, platform, model_id, source, reason) VALUES ('chat', 'google', ?, 'upstream_eol', 'Google 403: Free tier unavailable for this project (billing required)')"
-      ).run(gm.model_id);
-    }
+    // 5. Ensure verified partner & custom models are enabled, and dead/restricted models disabled
+    db.prepare(`
+      UPDATE models SET enabled = 1 WHERE (
+        (platform = 'hcnsec' AND model_id IN ('auto', 'DeepSeek-V4-Flash', 'Qwen3.8-27B')) OR
+        (platform = 'dahl' AND model_id IN ('MiniMaxAI/MiniMax-M2.7', 'deepseek-ai/DeepSeek-V4-Flash-0731')) OR
+        (platform = 'xkiro' AND model_id IN ('qwen/qwen3.8-max:free', 'minimax/minimax-m3.1-flash', 'mistralai/mistral-large-2512', 'cohere/command-a-plus')) OR
+        (platform = 'groq' AND model_id IN ('openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b')) OR
+        (platform = 'google' AND model_id IN ('gemini-2.5-flash', 'gemini-2.5-pro')) OR
+        (platform = 'mistral' AND model_id IN ('codestral-latest', 'mistral-large-latest', 'ministral-8b-latest', 'mistral-small-latest')) OR
+        (platform = 'cohere' AND model_id IN ('command-r-plus-08-2024', 'command-r-08-2024', 'command-a-03-2025', 'c4ai-aya-expanse-32b'))
+      )
+    `).run();
+
+    // Disable APInex (check-in required), Orca, and retired Groq/Cohere models
+    db.prepare(`
+      UPDATE models SET enabled = 0 WHERE
+        platform = 'apinex' OR
+        (platform = 'groq' AND model_id LIKE 'llama%') OR
+        (platform = 'cohere' AND model_id = 'command-r') OR
+        model_id IN ('stepaudio-2.5-chat', 'zai-org/GLM-5.3-Flash')
+    `).run();
 
     // 6. Insert / Update the live free OpenRouter models
     const selectStmt = db.prepare(
@@ -206,32 +216,27 @@ export async function scanAndAutoFetchFreeModels(): Promise<{
       db.prepare('UPDATE fallback_config SET enabled = 1 WHERE model_db_id = ?').run(modelIdNum);
     }
 
-    // 7. Ensure working Mistral & Cohere models are enabled
-    db.prepare(
-      "UPDATE models SET enabled = 1 WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'mistral-large-latest', 'ministral-8b-latest', 'mistral-small-latest')"
-    ).run();
-    db.prepare(
-      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'mistral' AND model_id IN ('codestral-latest', 'mistral-large-latest', 'ministral-8b-latest', 'mistral-small-latest'))"
-    ).run();
-
-    db.prepare(
-      "UPDATE models SET enabled = 1 WHERE platform = 'cohere' AND model_id IN ('command-r-plus-08-2024', 'command-r-08-2024', 'c4ai-aya-expanse-32b')"
-    ).run();
-    db.prepare(
-      "UPDATE fallback_config SET enabled = 1 WHERE model_db_id IN (SELECT id FROM models WHERE platform = 'cohere' AND model_id IN ('command-r-plus-08-2024', 'command-r-08-2024', 'c4ai-aya-expanse-32b'))"
-    ).run();
-
-    // 8. Put high-intelligence coding & frontier models at top priority in fallback_config
+    // 8. Put high-intelligence verified models at top priority in fallback_config
     const priorityOrdering = [
+      { platform: 'hcnsec', modelId: 'DeepSeek-V4-Flash' },
+      { platform: 'groq', modelId: 'openai/gpt-oss-120b' },
+      { platform: 'dahl', modelId: 'MiniMaxAI/MiniMax-M2.7' },
+      { platform: 'xkiro', modelId: 'qwen/qwen3.8-max:free' },
+      { platform: 'google', modelId: 'gemini-2.5-flash' },
       { platform: 'mistral', modelId: 'codestral-latest' },
-      { platform: 'mistral', modelId: 'mistral-large-latest' },
       { platform: 'cohere', modelId: 'command-r-plus-08-2024' },
+      { platform: 'hcnsec', modelId: 'auto' },
+      { platform: 'dahl', modelId: 'deepseek-ai/DeepSeek-V4-Flash-0731' },
+      { platform: 'xkiro', modelId: 'minimax/minimax-m3.1-flash' },
+      { platform: 'groq', modelId: 'qwen/qwen3.8-27b' },
+      { platform: 'groq', modelId: 'openai/gpt-oss-20b' },
+      { platform: 'hcnsec', modelId: 'Qwen3.8-27B' },
       { platform: 'openrouter', modelId: 'nvidia/nemotron-3-ultra-550b-a55b:free' },
       { platform: 'openrouter', modelId: 'google/gemma-4-31b-it:free' },
       { platform: 'openrouter', modelId: 'google/gemma-4-26b-a4b-it:free' },
       { platform: 'openrouter', modelId: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free' },
       { platform: 'cohere', modelId: 'command-r-08-2024' },
-      { platform: 'openrouter', modelId: 'xingchen-agi/xing4.0-29b-a4b:free' },
+      { platform: 'mistral', modelId: 'mistral-large-latest' },
       { platform: 'mistral', modelId: 'ministral-8b-latest' },
       { platform: 'mistral', modelId: 'mistral-small-latest' },
       { platform: 'openrouter', modelId: 'openrouter/free' },

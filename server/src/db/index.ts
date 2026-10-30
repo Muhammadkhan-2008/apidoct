@@ -139,46 +139,69 @@ export function initDb(
 
   if (!isEncryptionKeyInitialized()) initEncryptionKey(db);
 
-  // Auto-seed initial 20 keys, settings, and user if empty
+  // Auto-seed and sync keys, settings, user, models, and fallback config
   try {
     const keyCount = (db.prepare('SELECT COUNT(*) as count FROM api_keys').get() as { count: number })?.count ?? 0;
     const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number })?.count ?? 0;
-    if (keyCount === 0 || userCount === 0) {
-      const candidatePaths = [
-        path.resolve(__dirname, './seed-data.json'),
-        path.resolve(__dirname, '../../src/db/seed-data.json'),
-        path.resolve(process.cwd(), 'src/db/seed-data.json'),
-        path.resolve(process.cwd(), 'server/src/db/seed-data.json'),
-      ];
-      const seedPath = candidatePaths.find(p => fs.existsSync(p));
-      if (seedPath) {
-        const seed = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
-        if (keyCount === 0 && seed.keys && Array.isArray(seed.keys)) {
-          const insertKey = db.prepare(`
-            INSERT OR IGNORE INTO api_keys (id, platform, label, encrypted_key, iv, auth_tag, status, enabled, created_at, last_checked_at, base_url, last_health_error)
-            VALUES (@id, @platform, @label, @encrypted_key, @iv, @auth_tag, @status, @enabled, @created_at, @last_checked_at, @base_url, @last_health_error)
-          `);
-          for (const k of seed.keys) insertKey.run(k);
-          console.log(`[seed] Successfully seeded ${seed.keys.length} master API keys into database from ${seedPath}.`);
-        }
-        if (userCount === 0 && seed.users && Array.isArray(seed.users)) {
-          const insertUser = db.prepare(`
-            INSERT OR IGNORE INTO users (id, email, password_hash, created_at)
-            VALUES (@id, @email, @password_hash, @created_at)
-          `);
-          for (const u of seed.users) insertUser.run(u);
-          console.log(`[seed] Successfully seeded master admin user ${seed.users[0]?.email}.`);
-        }
-        if (seed.settings && Array.isArray(seed.settings)) {
-          const insertSetting = db.prepare(`
-            INSERT OR REPLACE INTO settings (key, value) VALUES (@key, @value)
-          `);
-          for (const s of seed.settings) insertSetting.run(s);
-          console.log(`[seed] Successfully seeded system settings.`);
-        }
-      } else {
-        console.warn('[seed] seed-data.json not found in candidate paths:', candidatePaths);
+    const candidatePaths = [
+      path.resolve(__dirname, './seed-data.json'),
+      path.resolve(__dirname, '../../src/db/seed-data.json'),
+      path.resolve(process.cwd(), 'src/db/seed-data.json'),
+      path.resolve(process.cwd(), 'server/src/db/seed-data.json'),
+    ];
+    const seedPath = candidatePaths.find(p => fs.existsSync(p));
+    if (seedPath) {
+      const seed = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+      if (keyCount === 0 && seed.keys && Array.isArray(seed.keys)) {
+        const insertKey = db.prepare(`
+          INSERT OR IGNORE INTO api_keys (id, platform, label, encrypted_key, iv, auth_tag, status, enabled, created_at, last_checked_at, base_url, last_health_error)
+          VALUES (@id, @platform, @label, @encrypted_key, @iv, @auth_tag, @status, @enabled, @created_at, @last_checked_at, @base_url, @last_health_error)
+        `);
+        for (const k of seed.keys) insertKey.run(k);
+        console.log(`[seed] Successfully seeded ${seed.keys.length} master API keys into database from ${seedPath}.`);
+      } else if (seed.keys && Array.isArray(seed.keys)) {
+        // Sync enabled/status flags for keys
+        const updateKey = db.prepare(`
+          UPDATE api_keys SET enabled = @enabled, status = @status, last_health_error = @last_health_error WHERE id = @id
+        `);
+        for (const k of seed.keys) updateKey.run(k);
       }
+      if (userCount === 0 && seed.users && Array.isArray(seed.users)) {
+        const insertUser = db.prepare(`
+          INSERT OR IGNORE INTO users (id, email, password_hash, created_at)
+          VALUES (@id, @email, @password_hash, @created_at)
+        `);
+        for (const u of seed.users) insertUser.run(u);
+        console.log(`[seed] Successfully seeded master admin user ${seed.users[0]?.email}.`);
+      }
+      if (seed.settings && Array.isArray(seed.settings)) {
+        const insertSetting = db.prepare(`
+          INSERT OR REPLACE INTO settings (key, value) VALUES (@key, @value)
+        `);
+        for (const s of seed.settings) insertSetting.run(s);
+        console.log(`[seed] Successfully seeded system settings.`);
+      }
+      if (seed.models && Array.isArray(seed.models)) {
+        const insertModel = db.prepare(`
+          INSERT OR REPLACE INTO models (id, platform, model_id, display_name, intelligence_rank, speed_rank, size_label, monthly_token_budget, context_window, enabled, supports_vision, supports_tools, key_id, source, endpoint_scope)
+          VALUES (@id, @platform, @model_id, @display_name, @intelligence_rank, @speed_rank, @size_label, @monthly_token_budget, @context_window, @enabled, @supports_vision, @supports_tools, @key_id, @source, @endpoint_scope)
+        `);
+        for (const m of seed.models) insertModel.run(m);
+        console.log(`[seed] Successfully seeded/synced ${seed.models.length} verified models.`);
+      }
+
+      // Ensure dead / retired models are disabled
+      db.prepare("UPDATE models SET enabled = 0 WHERE (platform = 'groq' AND model_id LIKE 'llama%') OR (platform = 'cohere' AND model_id = 'command-r') OR platform = 'apinex' OR model_id IN ('stepaudio-2.5-chat', 'zai-org/GLM-5.3-Flash')").run();
+
+      // Sync fallback_config for all enabled models
+      const enabledModels = db.prepare("SELECT id FROM models WHERE enabled = 1").all() as Array<{ id: number }>;
+      let priority = 1;
+      for (const m of enabledModels) {
+        db.prepare("INSERT OR IGNORE INTO fallback_config (model_db_id, priority, enabled) VALUES (?, ?, 1)").run(m.id, priority++);
+        db.prepare("UPDATE fallback_config SET enabled = 1 WHERE model_db_id = ?").run(m.id);
+      }
+    } else {
+      console.warn('[seed] seed-data.json not found in candidate paths:', candidatePaths);
     }
   } catch (err: any) {
     console.error('[seed] Notice during seed-data check:', err?.message ?? err);
