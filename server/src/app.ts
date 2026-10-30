@@ -233,6 +233,7 @@ export function createApp(config?: Config) {
   app.use('/api/compression', requireAuth, compressionRouter);
   app.use('/api/remote', remoteRouter);
   app.use('/api/sync', syncRouter);
+  app.use('/', axiomRouter);
   app.use('/api/axiom', axiomRouter);
   app.use('/auth', axiomRouter);
   app.use('/plugins', axiomRouter);

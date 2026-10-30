@@ -572,9 +572,11 @@ function handleAuthLogin(req: Request, res: Response) {
 
 axiomRouter.get('/auth/login', handleAuthLogin);
 axiomRouter.get('/auth/start', handleAuthLogin);
+axiomRouter.get('/login', handleAuthLogin);
+axiomRouter.get('/start', handleAuthLogin);
 
-// GET /auth/callback
-axiomRouter.get('/auth/callback', (req: Request, res: Response) => {
+// GET /auth/callback & /callback
+function handleAuthCallback(req: Request, res: Response) {
   const token = String(req.query.token || '');
   const scheme = String(req.query.scheme || 'apidoct');
   const email = String(req.query.email || '');
@@ -585,10 +587,13 @@ axiomRouter.get('/auth/callback', (req: Request, res: Response) => {
 
   const deepLink = `${scheme}://auth?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`;
   return res.redirect(deepLink);
-});
+}
 
-// POST & GET /auth/verify
-axiomRouter.all('/auth/verify', (req: Request, res: Response) => {
+axiomRouter.get('/auth/callback', handleAuthCallback);
+axiomRouter.get('/callback', handleAuthCallback);
+
+// POST & GET /auth/verify & /verify
+function handleVerify(req: Request, res: Response) {
   const session = resolveSession(req);
   if (!session) {
     return res.status(401).json({ valid: false, error: 'Invalid or expired authentication token' });
@@ -605,7 +610,10 @@ axiomRouter.all('/auth/verify', (req: Request, res: Response) => {
       remaining: Math.max(0, session.dailyLimit - session.requestsToday)
     }
   });
-});
+}
+
+axiomRouter.all('/auth/verify', handleVerify);
+axiomRouter.all('/verify', handleVerify);
 
 /**
  * GET /api/axiom/status
