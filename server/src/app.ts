@@ -234,11 +234,14 @@ export function createApp(config?: Config) {
   app.use('/api/remote', remoteRouter);
   app.use('/api/sync', syncRouter);
   app.use('/api/axiom', axiomRouter);
+  app.use('/auth', axiomRouter);
+  app.use('/plugins', axiomRouter);
+  app.use('/api/plugins', axiomRouter);
   app.get('/console', (_req, res) => {
-    res.redirect('/api/axiom/portal');
+    res.redirect('/auth/login');
   });
   app.get('/axiom', (_req, res) => {
-    res.redirect('/api/axiom/portal');
+    res.redirect('/auth/login');
   });
   app.use('/api', searchRouter);
   app.use('/v1', searchRouter);
